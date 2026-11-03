@@ -42,6 +42,7 @@ Users may name a style in English, in Chinese, or by its folder. Find it here, t
 | Whiteboard Explainer | 白板讲解 | [`whiteboard`](whiteboard/STYLE.md) | *Einstein in Your Pocket* |
 | Urban Sketch · Pen & Wash | 钢笔淡彩 | [`urban-sketch`](urban-sketch/STYLE.md) | *Where the Wind Went* |
 | Chalkboard | 黑板粉笔 | [`chalkboard`](chalkboard/STYLE.md) | *The Story of Chinese Characters* |
+| Terpning Epic Poster Gouache | 史诗海报水粉 | [`terpning-poster`](terpning-poster/STYLE.md) | *The Last Field* |
 
 ## East Asian Traditions · 东方传统
 

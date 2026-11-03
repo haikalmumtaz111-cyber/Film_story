@@ -408,6 +408,23 @@
   "dur": 49.3
  },
  {
+  "slug": "terpning-poster",
+  "num": "78",
+  "en": "Terpning Epic Poster Gouache",
+  "cn": "史诗海报水粉",
+  "cat": "手绘与绘画",
+  "cat_en": "Hand-drawn & Painting",
+  "film": "The Last Field",
+  "line": "A harvester rallies her village to bring in the last field before the storm; she lifts the final sheaf as the sun breaks under the clouds.",
+  "line_cn": "风暴来临前，收割的姑娘召集全村抢收最后一块麦田；她举起最后一捆麦子，阳光从云底破出。",
+  "uses": [
+   "Film & festival posters",
+   "Heroic brand stories",
+   "History & heritage"
+  ],
+  "dur": 40.0
+ },
+ {
   "slug": "shadow-puppet",
   "num": "07",
   "en": "Shadow Puppetry",

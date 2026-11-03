@@ -2,7 +2,7 @@
 
 # Lemo-Opuscar
 
-**一套用代码做片的风格工具箱：<!--n-->66<!--/n--> 种现成风格，也能做出你自己的。**<br>
+**一套用代码做片的风格工具箱：<!--n-->67<!--/n--> 种现成风格，也能做出你自己的。**<br>
 选一个风格，或者从头做一个，带上你的故事，让编程 agent 来当导演。
 
 <a href="https://lemomo-ai.github.io/lemo-opuscar/"><img alt="看图鉴" src="https://img.shields.io/badge/-%E2%96%B6%20%E7%9C%8B%E5%9B%BE%E9%89%B4-E8553A?style=for-the-badge"></a> <a href="README.md"><img alt="English" src="https://img.shields.io/badge/README-English-555?style=for-the-badge"></a> <a href="https://github.com/lemomo-ai/lemo-opuscar/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/lemomo-ai/lemo-opuscar?style=for-the-badge&color=F5B700&label=stars"></a> <a href="#授权"><img alt="MIT · CC BY 4.0" src="https://img.shields.io/badge/%E6%8E%88%E6%9D%83-MIT%20%C2%B7%20CC%20BY%204.0-2EA44F?style=for-the-badge"></a>
@@ -12,6 +12,7 @@
 ⚠️ **本插件为 Claude 专用。** 风格都是按 Claude Opus 5.5 调出来的，<br>
 其他模型适配度不高，请谨慎使用。
 
+🆕 **2026-11-03 · [史诗海报水粉](styles/terpning-poster/STYLE.md)**：会动的 1960 年代手绘史诗电影海报，水粉加油彩高光。[往下看 ↓](#手绘与绘画)<br>
 🆕 **2026-10-29 · [7 种新风格](https://lemomo-ai.github.io/lemo-opuscar/)**：孟菲斯微缩景观（[@EianLu](https://x.com/EianLu) 提供）、地铁线路图、黑板粉笔、电路板等。[往下看 ↓](#风格)<br>
 🆕 **2026-10-22 · 新分类[「剪辑与纪实」](https://lemomo-ai.github.io/lemo-opuscar/#edit-documentary)**：8 种风格，用真实的档案、文件和数据剪成。[往下看 ↓](#剪辑与纪实)<br>
 🆕 **2026-10-22 · 新玩法[「改成你自己的风格」](#改成你自己的风格)**：改库里的风格或从空白做，存成你自己的。[往下看 ↓](#改成你自己的风格)<br>
@@ -244,6 +245,7 @@ claude plugin uninstall lemo-opuscar@lemolab
 </tr>
 <tr>
 <td width="33%" valign="top"><a href="styles/urban-sketch/STYLE.md"><img src="docs/frames/urban-sketch.jpg" alt="钢笔淡彩"></a><br><b>钢笔淡彩</b><br>Urban Sketch · Pen &amp; Wash<br><i>Where the Wind Went</i><br><sub>公园只是一张钢笔速写，风把草帽吹到哪里，哪里才有颜色。</sub></td>
+<td width="33%" valign="top"><a href="styles/terpning-poster/STYLE.md"><img src="docs/frames/terpning-poster.jpg" alt="史诗海报水粉"></a><br><b>史诗海报水粉</b><br>Terpning Epic Poster Gouache<br><i>The Last Field</i><br><sub>风暴来临前，收割的姑娘召集全村抢收最后一块麦田；她举起最后一捆麦子，阳光从云底破出。</sub></td>
 </tr>
 </table>
 

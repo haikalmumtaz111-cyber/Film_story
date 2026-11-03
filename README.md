@@ -2,9 +2,9 @@
 
 # Lemo-Opuscar
 
-**A toolbox of film styles made in code: <!--n-->66<!--/n--> ready to use, and your own.**<br>
+**A toolbox of film styles made in code: <!--n-->67<!--/n--> ready to use, and your own.**<br>
 Pick a style or make one from scratch, bring your story, and let your coding agent direct.<br>
-<sub><!--n-->66<!--/n--> 种影片风格，每种都配一支完全用代码做出来的短片 · 🇨🇳 中文用户请看 <a href="README.zh-CN.md">简体中文说明</a></sub>
+<sub><!--n-->67<!--/n--> 种影片风格，每种都配一支完全用代码做出来的短片 · 🇨🇳 中文用户请看 <a href="README.zh-CN.md">简体中文说明</a></sub>
 
 <a href="https://lemomo-ai.github.io/lemo-opuscar/"><img alt="Watch the gallery" src="https://img.shields.io/badge/-%E2%96%B6%20Watch%20the%20gallery-E8553A?style=for-the-badge"></a> <a href="README.zh-CN.md"><img alt="简体中文" src="https://img.shields.io/badge/README-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-555?style=for-the-badge"></a> <a href="https://github.com/lemomo-ai/lemo-opuscar/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/lemomo-ai/lemo-opuscar?style=for-the-badge&color=F5B700&label=stars"></a> <a href="#licence"><img alt="MIT · CC BY 4.0" src="https://img.shields.io/badge/licence-MIT%20%C2%B7%20CC%20BY%204.0-2EA44F?style=for-the-badge"></a>
 
@@ -13,6 +13,7 @@ Pick a style or make one from scratch, bring your story, and let your coding age
 ⚠️ **Built for Claude.** The styles are tuned for Claude Opus 5.5;<br>
 other models may not reproduce them well, so use them with care.
 
+🆕 **2026-11-03 · [Terpning Epic Poster Gouache](styles/terpning-poster/STYLE.md)**: a 1960s hand-painted epic poster that moves, gouache with oil highlights. [See it ↓](#hand-drawn--painting)<br>
 🆕 **2026-10-29 · [7 new styles](https://lemomo-ai.github.io/lemo-opuscar/)**: a Memphis diorama by [@EianLu](https://x.com/EianLu), a metro map, a chalkboard and more. [See them ↓](#the-styles)<br>
 🆕 **2026-10-22 · [Edit & Documentary](https://lemomo-ai.github.io/lemo-opuscar/#edit-documentary)**: 8 styles cut from real footage, documents and data. [See them ↓](#edit--documentary)<br>
 🆕 **2026-10-22 · [Make a style your own](#make-a-style-your-own)**: change a style or start blank, and keep it. [See how ↓](#make-a-style-your-own)<br>
@@ -244,6 +245,7 @@ Click a frame for its `STYLE.md`.
 </tr>
 <tr>
 <td width="33%" valign="top"><a href="styles/urban-sketch/STYLE.md"><img src="docs/frames/urban-sketch.jpg" alt="Urban Sketch · Pen &amp; Wash"></a><br><b>Urban Sketch · Pen &amp; Wash</b><br><i>Where the Wind Went</i><br><sub>A park that is only a pen sketch; wherever the wind carries her straw hat, colour follows.</sub></td>
+<td width="33%" valign="top"><a href="styles/terpning-poster/STYLE.md"><img src="docs/frames/terpning-poster.jpg" alt="Terpning Epic Poster Gouache"></a><br><b>Terpning Epic Poster Gouache</b><br><i>The Last Field</i><br><sub>A harvester rallies her village to bring in the last field before the storm; she lifts the final sheaf as the sun breaks under the clouds.</sub></td>
 </tr>
 </table>
 
