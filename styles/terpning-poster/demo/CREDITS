@@ -1,0 +1,9 @@
+The Last Field — Terpning Epic Poster Gouache (terpning-poster)
+All pictures painted in code (engine/gouache.js, engine/forms.js, engine/figure.js, scenes/*.js). No generated images, no photos.
+Music composed and rendered in code with core/audio/sampler.py:
+  Samples (CC0): VS Chamber Orchestra: Community Edition (Versilian Studios) — horn, trumpet, trombone, tuba, timpani, snare, bass drum, crash, gong, violins, violin, violas, cellos, contrabass, flute
+Sound effects synthesized in code (mix.py, core/audio/sfx.py).
+Fonts (SIL Open Font License 1.1, fetched by tools/fetch_fonts.sh from github.com/google/fonts and fonts.googleapis.com):
+  Cinzel — Copyright 2020 The Cinzel Project Authors (fonts/OFL-Cinzel.txt)
+  Oswald — Copyright 2016 The Oswald Project Authors (fonts/OFL-Oswald.txt)
+  Noto Serif SC (subset of the glyphs used) — Copyright 2017 Adobe, SIL Open Font License 1.1
