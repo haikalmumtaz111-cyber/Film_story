@@ -1,0 +1,862 @@
+{
+ "bpm": 200,
+ "beat": 0.3,
+ "bar": 1.2,
+ "dur": 181.2,
+ "secs": [
+  {
+   "id": "logo",
+   "t0": 0,
+   "t1": 4.2
+  },
+  {
+   "id": "paper",
+   "t0": 4.2,
+   "t1": 17.7
+  },
+  {
+   "id": "chart",
+   "t0": 17.7,
+   "t1": 24.3
+  },
+  {
+   "id": "six",
+   "t0": 24.3,
+   "t1": 29.1
+  },
+  {
+   "id": "jfC",
+   "t0": 29.1,
+   "t1": 32.1
+  },
+  {
+   "id": "jfA",
+   "t0": 32.1,
+   "t1": 35.7
+  },
+  {
+   "id": "jfB",
+   "t0": 35.7,
+   "t1": 40.2
+  },
+  {
+   "id": "informal",
+   "t0": 40.2,
+   "t1": 47.1
+  },
+  {
+   "id": "factory",
+   "t0": 47.1,
+   "t1": 48.6
+  },
+  {
+   "id": "map1",
+   "t0": 48.6,
+   "t1": 51.9
+  },
+  {
+   "id": "sritex",
+   "t0": 51.9,
+   "t1": 60.3
+  },
+  {
+   "id": "kemnaker",
+   "t0": 60.3,
+   "t1": 68.4
+  },
+  {
+   "id": "map2",
+   "t0": 68.4,
+   "t1": 76.2
+  },
+  {
+   "id": "pailit",
+   "t0": 76.2,
+   "t1": 80.4
+  },
+  {
+   "id": "card",
+   "t0": 80.4,
+   "t1": 84.0
+  },
+  {
+   "id": "ledger",
+   "t0": 84.0,
+   "t1": 91.8
+  },
+  {
+   "id": "mbg",
+   "t0": 91.8,
+   "t1": 95.4
+  },
+  {
+   "id": "ledger2",
+   "t0": 95.4,
+   "t1": 102.0
+  },
+  {
+   "id": "split",
+   "t0": 102.0,
+   "t1": 112.2
+  },
+  {
+   "id": "dpr",
+   "t0": 112.2,
+   "t1": 121.2
+  },
+  {
+   "id": "krl",
+   "t0": 121.2,
+   "t1": 126.3
+  },
+  {
+   "id": "class",
+   "t0": 126.3,
+   "t1": 146.4
+  },
+  {
+   "id": "poster",
+   "t0": 146.4,
+   "t1": 158.1
+  },
+  {
+   "id": "button",
+   "t0": 158.1,
+   "t1": 165.9
+  },
+  {
+   "id": "endlogo",
+   "t0": 165.9,
+   "t1": 172.8
+  },
+  {
+   "id": "endcard",
+   "t0": 172.8,
+   "t1": 181.2
+  }
+ ],
+ "hits": {
+  "beams_on": 0.15,
+  "paper_fly": 4.2,
+  "paper_slam": 5.4,
+  "ul_465": 9.72,
+  "stop1": 13.8,
+  "chart_in": 17.7,
+  "ring_1737": 22.2,
+  "six_in": 24.3,
+  "six_ring": 25.74,
+  "wipe_jf": 29.1,
+  "cut_jfA": 32.1,
+  "cut_jfB": 35.7,
+  "inf_in": 40.2,
+  "inf_deal": 42.3,
+  "stamp_inf": 43.18,
+  "fac_in": 47.1,
+  "map1_in": 48.6,
+  "star_sk": 48.98,
+  "sritex_in": 51.9,
+  "print2": 54.9,
+  "tele_slam": 55.2,
+  "kem_in": 60.3,
+  "ring_1354": 66.1,
+  "map2_in": 68.4,
+  "jabar": 72.9,
+  "pailit_in": 76.2,
+  "stop2": 79.5,
+  "card_in": 80.4,
+  "ledger_in": 84.0,
+  "ul_total": 89.7,
+  "row_total": 87.197,
+  "mbg_in": 91.8,
+  "ledger2_in": 95.4,
+  "ul_bunga": 97.32,
+  "ring_lima": 99.44,
+  "split_in": 102.0,
+  "stamp_def": 106.0,
+  "batas": 110.32,
+  "stop3": 111.6,
+  "dpr_in": 112.2,
+  "stop4": 120.0,
+  "krl_in": 121.2,
+  "class_in": 126.3,
+  "row2": 132.0,
+  "ring_gap": 137.98,
+  "calon": 143.54,
+  "poster_in": 146.4,
+  "poster_slam": 152.4,
+  "stamp_stop": 156.24,
+  "button_in": 158.1,
+  "freeze": 162.3,
+  "endlogo_in": 165.9,
+  "end_hit1": 168.6,
+  "end_hit2": 169.05,
+  "endcard_in": 172.8
+ },
+ "lines": [
+  {
+   "id": "L00",
+   "t": 1.313,
+   "end": 4.315
+  },
+  {
+   "id": "L01",
+   "t": 5.602,
+   "end": 7.78
+  },
+  {
+   "id": "L02",
+   "t": 8.014,
+   "end": 11.013
+  },
+  {
+   "id": "L03",
+   "t": 11.308,
+   "end": 13.612
+  },
+  {
+   "id": "L04",
+   "t": 14.72,
+   "end": 17.557
+  },
+  {
+   "id": "L05",
+   "t": 18.07,
+   "end": 21.847
+  },
+  {
+   "id": "L06",
+   "t": 22.15,
+   "end": 24.286
+  },
+  {
+   "id": "L07",
+   "t": 24.639,
+   "end": 28.531
+  },
+  {
+   "id": "L08",
+   "t": 29.334,
+   "end": 31.516
+  },
+  {
+   "id": "L09",
+   "t": 31.925,
+   "end": 35.54
+  },
+  {
+   "id": "L10",
+   "t": 35.91,
+   "end": 38.93
+  },
+  {
+   "id": "L11",
+   "t": 40.557,
+   "end": 42.382
+  },
+  {
+   "id": "L12",
+   "t": 42.677,
+   "end": 46.254
+  },
+  {
+   "id": "L13",
+   "t": 47.354,
+   "end": 48.553
+  },
+  {
+   "id": "L14",
+   "t": 48.854,
+   "end": 51.439
+  },
+  {
+   "id": "L15",
+   "t": 52.168,
+   "end": 54.781
+  },
+  {
+   "id": "L16",
+   "t": 55.117,
+   "end": 58.977
+  },
+  {
+   "id": "L17",
+   "t": 60.605,
+   "end": 66.1
+  },
+  {
+   "id": "L18",
+   "t": 66.099,
+   "end": 68.336
+  },
+  {
+   "id": "L19",
+   "t": 68.734,
+   "end": 72.511
+  },
+  {
+   "id": "L20",
+   "t": 72.792,
+   "end": 74.179
+  },
+  {
+   "id": "L21",
+   "t": 74.486,
+   "end": 79.221
+  },
+  {
+   "id": "L22",
+   "t": 84.204,
+   "end": 86.541
+  },
+  {
+   "id": "L23",
+   "t": 86.997,
+   "end": 91.384
+  },
+  {
+   "id": "L24",
+   "t": 92.079,
+   "end": 95.391
+  },
+  {
+   "id": "L25",
+   "t": 95.748,
+   "end": 98.501
+  },
+  {
+   "id": "L26",
+   "t": 98.822,
+   "end": 101.063
+  },
+  {
+   "id": "L27",
+   "t": 102.219,
+   "end": 105.438
+  },
+  {
+   "id": "L28",
+   "t": 105.861,
+   "end": 109.296
+  },
+  {
+   "id": "L29",
+   "t": 109.633,
+   "end": 111.502
+  },
+  {
+   "id": "L30",
+   "t": 112.423,
+   "end": 116.874
+  },
+  {
+   "id": "L31",
+   "t": 117.197,
+   "end": 119.677
+  },
+  {
+   "id": "L32",
+   "t": 121.461,
+   "end": 126.05
+  },
+  {
+   "id": "L33",
+   "t": 126.545,
+   "end": 131.33
+  },
+  {
+   "id": "L34",
+   "t": 131.778,
+   "end": 137.137
+  },
+  {
+   "id": "L35",
+   "t": 137.908,
+   "end": 140.02
+  },
+  {
+   "id": "L36",
+   "t": 140.453,
+   "end": 145.242
+  },
+  {
+   "id": "L37",
+   "t": 146.654,
+   "end": 151.905
+  },
+  {
+   "id": "L38",
+   "t": 152.096,
+   "end": 154.708
+  },
+  {
+   "id": "L39",
+   "t": 154.996,
+   "end": 157.685
+  },
+  {
+   "id": "L40",
+   "t": 159.816,
+   "end": 161.764
+  },
+  {
+   "id": "L41",
+   "t": 162.391,
+   "end": 164.558
+  },
+  {
+   "id": "L42",
+   "t": 166.424,
+   "end": 168.165
+  }
+ ],
+ "cues": [
+  {
+   "id": "L00",
+   "t": 1.313,
+   "text": "Warta Kilat Nusantara! Kabar ekonomi pekan ini!",
+   "spoken": 3.002,
+   "t1": 4.915
+  },
+  {
+   "id": "L01",
+   "t": 5.602,
+   "text": "Kabar gembira dari Badan Pusat Statistik!",
+   "spoken": 2.178,
+   "t1": 7.964
+  },
+  {
+   "id": "L02",
+   "t": 8.014,
+   "text": "Pengangguran nasional turun ke 4,65%.",
+   "spoken": 2.999,
+   "t1": 11.258
+  },
+  {
+   "id": "L03",
+   "t": 11.308,
+   "text": "Terendah sejak tahun 1994!",
+   "spoken": 2.304,
+   "t1": 14.212
+  },
+  {
+   "id": "L04",
+   "t": 14.72,
+   "text": "Tapi tunggu dulu, Saudara-saudara.",
+   "spoken": 2.837,
+   "t1": 18.02
+  },
+  {
+   "id": "L05",
+   "t": 18.07,
+   "text": "Usia 15 sampai 24 tahun: angkanya malah naik.",
+   "spoken": 3.777,
+   "t1": 22.1
+  },
+  {
+   "id": "L06",
+   "t": 22.15,
+   "text": "17,37%!",
+   "spoken": 2.136,
+   "t1": 24.589
+  },
+  {
+   "id": "L07",
+   "t": 24.639,
+   "text": "Lebih dari 1 dari 6 pencari kerja muda masih menganggur.",
+   "spoken": 3.892,
+   "t1": 29.131
+  },
+  {
+   "id": "L08",
+   "t": 29.334,
+   "text": "Cikarang, Mei 2025.",
+   "spoken": 2.182,
+   "t1": 31.875
+  },
+  {
+   "id": "L09",
+   "t": 31.925,
+   "text": "Sekitar 25.000 pelamar menyerbu satu bursa kerja.",
+   "spoken": 3.615,
+   "t1": 35.86
+  },
+  {
+   "id": "L10",
+   "t": 35.91,
+   "text": "Lowongannya cuma ribuan. Ada yang sampai pingsan!",
+   "spoken": 3.02,
+   "t1": 39.53
+  },
+  {
+   "id": "L11",
+   "t": 40.557,
+   "text": "Yang sudah kerja pun belum tentu aman.",
+   "spoken": 1.825,
+   "t1": 42.627
+  },
+  {
+   "id": "L12",
+   "t": 42.677,
+   "text": "Hampir 60% pekerja kita ada di sektor informal.",
+   "spoken": 3.577,
+   "t1": 46.854
+  },
+  {
+   "id": "L13",
+   "t": 47.354,
+   "text": "Sekarang kita ke pabrik!",
+   "spoken": 1.199,
+   "t1": 48.804
+  },
+  {
+   "id": "L14",
+   "t": 48.854,
+   "text": "Sukoharjo, 1 Maret 2025.",
+   "spoken": 2.585,
+   "t1": 52.039
+  },
+  {
+   "id": "L15",
+   "t": 52.168,
+   "text": "Raksasa tekstil Sritex berhenti total.",
+   "spoken": 2.613,
+   "t1": 55.067
+  },
+  {
+   "id": "L16",
+   "t": 55.117,
+   "text": "10.665 pekerja pulang tanpa pekerjaan.",
+   "spoken": 3.86,
+   "t1": 59.577
+  },
+  {
+   "id": "L17",
+   "t": 60.605,
+   "text": "Sepanjang 2025, Kemnaker mencatat 88.519 korban PHK.",
+   "spoken": 5.495,
+   "t1": 66.049
+  },
+  {
+   "id": "L18",
+   "t": 66.099,
+   "text": "Naik 13,54% dari tahun sebelumnya!",
+   "spoken": 2.237,
+   "t1": 68.684
+  },
+  {
+   "id": "L19",
+   "t": 68.734,
+   "text": "Tahun ini, sampai September: 63.789 orang.",
+   "spoken": 3.777,
+   "t1": 72.742
+  },
+  {
+   "id": "L20",
+   "t": 72.792,
+   "text": "Jawa Barat paling banyak!",
+   "spoken": 1.387,
+   "t1": 74.436
+  },
+  {
+   "id": "L21a",
+   "t": 74.486,
+   "text": "Dan itu baru yang tercatat.",
+   "spoken": 1.764,
+   "t1": 76.2
+  },
+  {
+   "id": "L21b",
+   "t": 76.25,
+   "text": "Kata serikat buruh, angka aslinya lebih besar.",
+   "spoken": 2.971,
+   "t1": 79.821
+  },
+  {
+   "id": "L22",
+   "t": 84.204,
+   "text": "Lalu, ke mana uang negara mengalir?",
+   "spoken": 2.337,
+   "t1": 86.947
+  },
+  {
+   "id": "L23",
+   "t": 86.997,
+   "text": "Tahun ini, belanja negara diproyeksi Rp3.942,4 triliun.",
+   "spoken": 4.387,
+   "t1": 91.984
+  },
+  {
+   "id": "L24",
+   "t": 92.079,
+   "text": "Makan Bergizi Gratis: Rp335 triliun.",
+   "spoken": 3.312,
+   "t1": 95.698
+  },
+  {
+   "id": "L25",
+   "t": 95.748,
+   "text": "Bunga utang saja: Rp599,44 triliun.",
+   "spoken": 2.753,
+   "t1": 98.772
+  },
+  {
+   "id": "L26",
+   "t": 98.822,
+   "text": "Itu hampir seperlima pendapatan negara!",
+   "spoken": 2.241,
+   "t1": 101.663
+  },
+  {
+   "id": "L27",
+   "t": 102.219,
+   "text": "Belanja lari lebih kencang dari pemasukan.",
+   "spoken": 3.219,
+   "t1": 105.811
+  },
+  {
+   "id": "L28",
+   "t": 105.861,
+   "text": "Defisit diperkirakan 2,85% dari PDB.",
+   "spoken": 3.435,
+   "t1": 109.583
+  },
+  {
+   "id": "L29",
+   "t": 109.633,
+   "text": "Batasnya? 3%!",
+   "spoken": 1.869,
+   "t1": 112.102
+  },
+  {
+   "id": "L30a",
+   "t": 112.423,
+   "text": "Di Senayan, ada yang mengingatkan:",
+   "spoken": 2.097,
+   "t1": 114.47
+  },
+  {
+   "id": "L30b",
+   "t": 114.52,
+   "text": "target pajak tahun ini terlalu tinggi.",
+   "spoken": 2.354,
+   "t1": 117.147
+  },
+  {
+   "id": "L31",
+   "t": 117.197,
+   "text": "Kalau pemasukan meleset, siapa yang menambal?",
+   "spoken": 2.48,
+   "t1": 120.277
+  },
+  {
+   "id": "L32",
+   "t": 121.461,
+   "text": "Sementara itu, di rumah-rumah, dompet makin tipis.",
+   "spoken": 4.589,
+   "t1": 126.495
+  },
+  {
+   "id": "L33",
+   "t": 126.545,
+   "text": "Tahun 2019, kelas menengah kita 57,33 juta orang.",
+   "spoken": 4.785,
+   "t1": 131.728
+  },
+  {
+   "id": "L34a",
+   "t": 131.778,
+   "text": "Tahun lalu, menurut perkiraan Mandiri Institute,",
+   "spoken": 2.932,
+   "t1": 134.66
+  },
+  {
+   "id": "L34b",
+   "t": 134.71,
+   "text": "tinggal 46,7 juta.",
+   "spoken": 2.427,
+   "t1": 137.737
+  },
+  {
+   "id": "L35",
+   "t": 137.908,
+   "text": "Berkurang lebih dari 10 juta orang!",
+   "spoken": 2.112,
+   "t1": 140.403
+  },
+  {
+   "id": "L36",
+   "t": 140.453,
+   "text": "Calon kelas menengah justru membengkak, jadi 142 juta.",
+   "spoken": 4.789,
+   "t1": 145.842
+  },
+  {
+   "id": "L37a",
+   "t": 146.654,
+   "text": "Agustus 2025.",
+   "spoken": 1.686,
+   "t1": 148.29
+  },
+  {
+   "id": "L37b",
+   "t": 148.34,
+   "text": "Soal tunjangan DPR, mahasiswa dan warga turun ke jalan.",
+   "spoken": 3.565,
+   "t1": 152.046
+  },
+  {
+   "id": "L38",
+   "t": 152.096,
+   "text": "Lahir 17+8 Tuntutan Rakyat.",
+   "spoken": 2.612,
+   "t1": 154.946
+  },
+  {
+   "id": "L39",
+   "t": 154.996,
+   "text": "DPR akhirnya menghentikan tunjangan rumah.",
+   "spoken": 2.689,
+   "t1": 158.285
+  },
+  {
+   "id": "L40",
+   "t": 159.816,
+   "text": "Angka nasional bilang membaik.",
+   "spoken": 1.948,
+   "t1": 162.341
+  },
+  {
+   "id": "L41",
+   "t": 162.391,
+   "text": "Antrean bursa kerja bilang lain.",
+   "spoken": 2.167,
+   "t1": 165.158
+  },
+  {
+   "id": "L42",
+   "t": 166.424,
+   "text": "Warta Kilat Nusantara!",
+   "spoken": 1.741,
+   "t1": 168.765
+  }
+ ],
+ "tags": [
+  {
+   "sec": "jf",
+   "t0": 29.4,
+   "t1": 40.1,
+   "l1": "CIKARANG · 27 MEI 2025",
+   "l2": "Bekasi Pasti Kerja Expo"
+  },
+  {
+   "sec": "sritex",
+   "t0": 52.1,
+   "t1": 60.2,
+   "l1": "SUKOHARJO · 1 MARET 2025",
+   "l2": "PT Sri Rejeki Isman (Sritex)"
+  },
+  {
+   "sec": "kem",
+   "t0": 60.5,
+   "t1": 68.3,
+   "l1": "KEMNAKER · JANUARI 2026",
+   "l2": "Data PHK peserta JKP"
+  },
+  {
+   "sec": "mbg",
+   "t0": 91.95,
+   "t1": 95.35,
+   "l1": "JAKARTA · 3 FEBRUARI 2025",
+   "l2": "Makan Bergizi Gratis"
+  },
+  {
+   "sec": "dpr",
+   "t0": 112.4,
+   "t1": 119.95,
+   "l1": "SENAYAN · JAKARTA",
+   "l2": "Gedung DPR RI"
+  },
+  {
+   "sec": "krl",
+   "t0": 121.4,
+   "t1": 126.2,
+   "l1": "STASIUN SUDIRMAN",
+   "l2": "KRL jam pulang kerja"
+  },
+  {
+   "sec": "poster",
+   "t0": 146.6,
+   "t1": 158.0,
+   "l1": "JAKARTA · AGUSTUS 2025",
+   "l2": "Protes tunjangan DPR"
+  }
+ ],
+ "clips": {
+  "jfC": {
+   "src": "jobfair_bekasi_ricuh.mov",
+   "ss": 33.0,
+   "box": [
+    700,
+    0,
+    1796,
+    800
+   ],
+   "dur": 6.0
+  },
+  "jfA": {
+   "src": "jobfair_bekasi_ricuh.mov",
+   "ss": 6.2,
+   "box": [
+    700,
+    0,
+    1796,
+    800
+   ],
+   "dur": 4.2
+  },
+  "jfB": {
+   "src": "jobfair_bekasi_ricuh.mov",
+   "ss": 37.4,
+   "box": [
+    700,
+    0,
+    1796,
+    800
+   ],
+   "dur": 5.1
+  },
+  "mbg": {
+   "src": "mbg_prabowo_2025-02-03.mov",
+   "ss": 0.2,
+   "box": [
+    150,
+    0,
+    1630,
+    1080
+   ],
+   "dur": 4.2
+  },
+  "dpr": {
+   "src": "dpr_drone_2021.mov",
+   "ss": 2.9,
+   "box": [
+    302,
+    60,
+    1617,
+    1020
+   ],
+   "dur": 9.6
+  },
+  "krl": {
+   "src": "krl_sudirman_rush.mov",
+   "ss": 4.0,
+   "box": [
+    220,
+    0,
+    1700,
+    1080
+   ],
+   "dur": 5.7
+  }
+ }
+}

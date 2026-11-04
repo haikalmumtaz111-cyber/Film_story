@@ -1,0 +1,43 @@
+L00  Warta Kilat Nusantara! Kabar ekonomi pekan ini!
+L01  Kabar gembira dari Badan Pusat Statistik!
+L02  Pengangguran nasional turun ke empat koma enam lima persen.
+L03  Terendah sejak tahun sembilan belas sembilan puluh empat!
+L04  Tapi tunggu dulu, Saudara-saudara.
+L05  Di kelompok umur lima belas sampai dua puluh empat, angkanya malah naik.
+L06  Tujuh belas koma tiga tujuh persen!
+L07  Lebih dari satu dari enam anak muda yang cari kerja masih menganggur.
+L08  Cikarang, Mei dua ribu dua puluh lima.
+L09  Sekitar dua puluh lima ribu pelamar menyerbu satu bursa kerja.
+L10  Lowongannya cuma ribuan. Ada yang sampai pingsan!
+L11  Yang sudah kerja pun belum tentu aman.
+L12  Hampir enam puluh persen pekerja kita ada di sektor informal.
+L13  Sekarang kita ke pabrik!
+L14  Sukoharjo, satu Maret dua ribu dua puluh lima.
+L15  Raksasa tekstil Sritex berhenti total.
+L16  Sepuluh ribu enam ratus enam puluh lima pekerja pulang tanpa pekerjaan.
+L17  Sepanjang tahun itu, Kemnaker mencatat delapan puluh delapan ribu lebih korban PHK.
+L18  Naik tiga belas persen lebih dari tahun sebelumnya!
+L19  Tahun ini, sampai September, sudah enam puluh tiga ribu orang lebih.
+L20  Jawa Barat paling banyak!
+L21  Dan itu baru yang tercatat. Serikat buruh bilang, angka aslinya lebih besar.
+L22  Lalu, ke mana uang negara mengalir?
+L23  Tahun ini, belanja negara diproyeksi hampir empat ribu triliun rupiah.
+L24  Makan Bergizi Gratis, tiga ratus tiga puluh lima triliun.
+L25  Bunga utang saja, hampir enam ratus triliun.
+L26  Itu hampir seperlima pendapatan negara!
+L27  Belanja lari lebih kencang dari pemasukan.
+L28  Defisit diperkirakan dua koma delapan lima persen dari PDB.
+L29  Batasnya? Tiga persen!
+L30  Di Senayan, ada yang mengingatkan, target pajak tahun ini terlalu tinggi.
+L31  Kalau pemasukan meleset, siapa yang menambal?
+L32  Sementara itu, di rumah-rumah, dompet makin tipis.
+L33  Tahun dua ribu sembilan belas, kelas menengah kita lima puluh tujuh koma tiga juta orang.
+L34  Tahun lalu, menurut perkiraan Mandiri Institute, tinggal empat puluh enam koma tujuh juta.
+L35  Berkurang lebih dari sepuluh juta orang!
+L36  Kelompok calon kelas menengah justru membengkak, jadi seratus empat puluh dua juta.
+L37  Agustus dua ribu dua puluh lima, soal tunjangan DPR, mahasiswa dan warga turun ke jalan.
+L38  Lahir tujuh belas plus delapan tuntutan rakyat.
+L39  DPR akhirnya menghentikan tunjangan rumah.
+L40  Angka nasional bilang membaik.
+L41  Antrean bursa kerja bilang lain.
+L42  Warta Kilat Nusantara!

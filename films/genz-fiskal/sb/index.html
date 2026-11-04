@@ -1,0 +1,308 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Warta Kilat storyboard</title>
+<style>
+@font-face{font-family:Limelight;src:url(../fonts/Limelight-Regular.ttf)}
+@font-face{font-family:Oswald;src:url(../fonts/Oswald.ttf);font-weight:200 700}
+@font-face{font-family:"Noto Sans";src:url(../fonts/NotoSans.ttf);font-weight:100 900}
+html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}
+</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script type="module">
+import { clamp, lerp, seg, ss, eio, eo, ei, back, hash, vnoise, TAU } from '/core/lib.js';
+// Storyboard: render(t) shows shot floor(t) at a representative moment. Same drawing code the film will use.
+const W = 1920, H = 1080, GX = 220, GW = 1480, GH = 1080;
+const cv = document.getElementById('c'), X = cv.getContext('2d');
+const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+const PIC = mk(GW, GH), P = PIC.getContext('2d');
+const img = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => { console.error('missing ' + src); r(null); }; i.src = src; });
+const A = {};
+for (const n of ['jobfair']) A[n] = await img(`../assets/${n}.jpg`);
+for (const n of ['sritex_buruh_gedung']) A[n] = await img(`../assets/foto/${n}.jpg`);
+const MAP = await (await fetch('../assets/java.json')).json();
+for (const f of ['120px Limelight', '700 40px Oswald', '600 40px "Noto Sans"', '400 18px "Noto Sans"']) await document.fonts.load(f, 'ABC abc 0123');
+
+// ---------- helpers ----------
+function pencil(c, pts, u, wid = 7, alpha = .92) {
+  if (u <= 0 || pts.length < 2) return;
+  const n = Math.max(2, Math.floor(pts.length * clamp(u)));
+  for (const [dx, dy, a, lw] of [[0, 0, alpha, wid], [1.6, -1.2, alpha * .45, wid * .55]]) {
+    c.save(); c.strokeStyle = `rgba(250,248,240,${a})`; c.lineWidth = lw; c.lineCap = 'round'; c.lineJoin = 'round'; c.beginPath();
+    for (let i = 0; i < n; i++) { const [x, y] = pts[i], j = (hash(i * 1.7 + x * .01) - .5) * 1.6; i ? c.lineTo(x + dx + j, y + dy + j) : c.moveTo(x + dx, y + dy); }
+    c.stroke(); c.restore();
+  }
+}
+const ring = (cx, cy, rx, ry, rot = 0, turns = 1.12) => [...Array(64).keys()].map(i => { const a = -2.2 + i / 63 * TAU * turns, r = 1 + .05 * Math.sin(i * .7); return [cx + Math.cos(a + rot) * rx * r, cy + Math.sin(a + rot) * ry * r]; });
+const lineP = (x0, y0, x1, y1, n = 24) => [...Array(n).keys()].map(i => { const u = i / (n - 1); return [lerp(x0, x1, u), lerp(y0, y1, u) + Math.sin(u * 9) * 2]; });
+function bgDesk(c) { const g = c.createRadialGradient(GW / 2, GH * .45, 100, GW / 2, GH / 2, 1000); g.addColorStop(0, '#5b5751'); g.addColorStop(1, '#151413'); c.fillStyle = g; c.fillRect(0, 0, GW, GH); }
+function silverText(c, txt, x, y, size, font = 'Limelight', align = 'center', ls = '0px') {
+  c.font = `${size}px ${font}`; c.textAlign = align; c.textBaseline = 'middle'; c.letterSpacing = ls;
+  c.lineJoin = 'round'; c.lineWidth = size * .12; c.strokeStyle = '#0c0b0a'; c.strokeText(txt, x, y);
+  const g = c.createLinearGradient(0, y - size * .5, 0, y + size * .5);
+  g.addColorStop(0, '#ffffff'); g.addColorStop(.48, '#d9d4ca'); g.addColorStop(.52, '#9e978a'); g.addColorStop(1, '#efebe2');
+  c.fillStyle = g; c.fillText(txt, x, y);
+}
+function paperNoise(c, w, h, seed, amt = .05) {   // newsprint fibre and blotches
+  for (let i = 0; i < 2600; i++) { const s = seed + i * 1.37; c.fillStyle = hash(s) > .5 ? `rgba(0,0,0,${amt})` : `rgba(255,255,255,${amt})`; c.fillRect(hash(s + 1) * w, hash(s + 2) * h, 1 + hash(s + 3) * 3, 1 + hash(s + 4) * 2); }
+}
+
+// ---------- 1. ident ----------
+function globe(c, cx, cy, R, rot) {
+  c.save(); const g = c.createRadialGradient(cx - R * .35, cy - R * .4, R * .1, cx, cy, R);
+  g.addColorStop(0, '#f4f1ea'); g.addColorStop(.55, '#a9a49a'); g.addColorStop(1, '#34312c'); c.fillStyle = g; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.fill();
+  const tilt = .38, ct = Math.cos(tilt), st = Math.sin(tilt);
+  const P3 = (lat, lon) => { const x = Math.cos(lat) * Math.sin(lon + rot), y = Math.sin(lat), z = Math.cos(lat) * Math.cos(lon + rot); return [cx + R * x, cy - R * (y * ct - z * st), y * st + z * ct]; };
+  c.strokeStyle = 'rgba(20,18,15,.75)'; c.lineWidth = Math.max(1.2, R * .012);
+  const line = pts => { c.beginPath(); let on = false; for (const p of pts) { if (p[2] > 0) { on ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]); on = true; } else on = false; } c.stroke(); };
+  for (let k = 0; k < 12; k++) { const pts = []; for (let a = -90; a <= 90; a += 4) pts.push(P3(a * Math.PI / 180, k * TAU / 12)); line(pts); }
+  for (let la = -60; la <= 60; la += 30) { const pts = []; for (let a = 0; a <= 360; a += 4) pts.push(P3(la * Math.PI / 180, a * Math.PI / 180)); line(pts); }
+  c.lineWidth = Math.max(2, R * .025); c.strokeStyle = 'rgba(10,9,8,.9)'; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.stroke(); c.restore();
+}
+function sunburst(c, cx, cy, rot) { for (let i = 0; i < 36; i++) { const a0 = rot + i * TAU / 36; c.fillStyle = i % 2 ? '#2a2723' : '#1b1916'; c.beginPath(); c.moveTo(cx, cy); c.arc(cx, cy, 1600, a0, a0 + TAU / 72); c.closePath(); c.fill(); } }
+function beams(c, t) {
+  c.save(); c.globalCompositeOperation = 'lighter';
+  for (const side of [-1, 1]) {
+    const ox = GW / 2 + side * 640, oy = GH + 40, ang = -Math.PI / 2 - side * (.42 + .22 * Math.sin(t * 1.9 + (side > 0 ? 1.1 : 0))), L = 1500, sp = .085;
+    const g = c.createLinearGradient(ox, oy, ox + Math.cos(ang) * L, oy + Math.sin(ang) * L);
+    g.addColorStop(0, 'rgba(255,252,240,.55)'); g.addColorStop(.7, 'rgba(255,250,235,.16)'); g.addColorStop(1, 'rgba(255,250,235,0)');
+    c.fillStyle = g; c.beginPath(); c.moveTo(ox, oy); c.lineTo(ox + Math.cos(ang - sp) * L, oy + Math.sin(ang - sp) * L); c.lineTo(ox + Math.cos(ang + sp) * L, oy + Math.sin(ang + sp) * L); c.closePath(); c.fill();
+  }
+  c.restore();
+}
+function shotIdent(c, t) {
+  c.fillStyle = '#121110'; c.fillRect(0, 0, GW, GH);
+  sunburst(c, GW / 2, GH * .44, t * .12); beams(c, t);
+  globe(c, GW / 2, GH * .36, 190, t * 1.4);
+  silverText(c, 'WARTA KILAT', GW / 2, GH * .69, 118);
+  silverText(c, 'NUSANTARA', GW / 2 + 9, GH * .80, 58, 'Limelight', 'center', '18px');
+  c.font = '500 26px Oswald'; c.letterSpacing = '9px'; c.textAlign = 'center'; c.fillStyle = '#b9b2a4'; c.fillText('KABAR EKONOMI · PEKAN INI', GW / 2 + 4, GH * .91);
+}
+
+// ---------- 2. the newspaper (our own invented paper, never a real outlet) ----------
+const PAPER = (() => {
+  const w = 1500, h = 1000, c = mk(w, h), g = c.getContext('2d');
+  g.fillStyle = '#dcd6c8'; g.fillRect(0, 0, w, h); paperNoise(g, w, h, 11, .06);
+  const ink = '#1d1b18'; g.fillStyle = ink; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  g.font = '700 128px Oswald'; g.letterSpacing = '14px'; g.fillText('WARTA KILAT', w / 2, 150);
+  g.fillRect(60, 178, w - 120, 5); g.fillRect(60, 232, w - 120, 2);
+  g.font = '500 22px Oswald'; g.letterSpacing = '4px';
+  g.textAlign = 'left'; g.fillText('JAKARTA, RABU 5 AGUSTUS 2026', 66, 216); g.textAlign = 'right'; g.fillText('EDISI SORE', w - 66, 216);
+  g.textAlign = 'center'; g.font = '700 98px Oswald'; g.letterSpacing = '2px'; g.fillText('PENGANGGURAN TURUN KE 4,65 %', w / 2, 370);
+  { const full = g.measureText('PENGANGGURAN TURUN KE 4,65 %').width, tail = g.measureText('4,65 %').width; c.hl = [w / 2 + full / 2 - tail, w / 2 + full / 2]; }
+  g.font = 'italic 600 38px "Noto Sans"'; g.letterSpacing = '0px'; g.fillText('BPS: terendah sejak 1994, tapi 7,22 juta orang masih menganggur', w / 2, 438);
+  g.fillRect(60, 470, w - 120, 2);
+  const body = 'Badan Pusat Statistik mengumumkan tingkat pengangguran terbuka per Mei 2026 sebesar 4,65 persen, turun 0,03 poin dibanding Februari. Jumlah penganggur tercatat 7,22 juta orang. Kelompok umur 15 sampai 24 tahun tetap menjadi yang tertinggi, yakni 17,37 persen, naik dari 16,36 persen pada Februari. Pekerja informal mencapai 59,30 persen dari penduduk yang bekerja. ';
+  g.font = '400 21px "Noto Sans"'; g.textAlign = 'left';
+  const cols = 4, cw = (w - 120 - (cols - 1) * 36) / cols;
+  for (let k = 0; k < cols; k++) {
+    let x = 60 + k * (cw + 36), y = 512, words = (body + body).split(' ').slice(k * 9), line = '';
+    for (const wd of words) { const tst = line ? line + ' ' + wd : wd; if (g.measureText(tst).width > cw) { g.fillText(line, x, y); y += 30; line = wd; if (y > h - 40) break; } else line = tst; }
+    if (k) g.fillRect(x - 19, 490, 1.5, h - 520);
+  }
+  const v = g.createRadialGradient(w / 2, h / 2, h * .3, w / 2, h / 2, h); v.addColorStop(0, 'rgba(60,50,30,0)'); v.addColorStop(1, 'rgba(60,50,30,.22)'); g.fillStyle = v; g.fillRect(0, 0, w, h);
+  return c;
+})();
+function shotPaper(c, t) {
+  bgDesk(c);
+  const im = PAPER, s = (GW - 70) / im.width * 1.04, fx = .5, fy = .40;   // pushed in on the headline after the slam
+  c.save(); c.translate(GW / 2, GH / 2); c.scale(s, s); c.shadowColor = 'rgba(0,0,0,.6)'; c.shadowBlur = 40 / s; c.shadowOffsetY = 14 / s;
+  c.drawImage(im, -fx * im.width, -fy * im.height); c.restore();
+  const toG = (x, y) => [GW / 2 + (x - fx * im.width) * s, GH / 2 + (y - fy * im.height) * s];
+  const [ax, ay] = toG(im.hl[0] - 6, 394), [bx] = toG(im.hl[1] + 6, 394);
+  pencil(c, lineP(ax, ay, bx, ay - 6, 30), 1, 8);
+}
+
+// ---------- 3. the chart: one printed bulletin card, values drawn to scale ----------
+function shotChart(c, t) {
+  bgDesk(c);
+  const x0 = 170, y0 = 110, w = GW - 340, h = GH - 230;
+  c.save(); c.shadowColor = 'rgba(0,0,0,.6)'; c.shadowBlur = 40; c.shadowOffsetY = 14; c.fillStyle = '#dcd6c8'; c.fillRect(x0, y0, w, h); c.restore();
+  c.save(); c.translate(x0, y0); paperNoise(c, w, h, 31, .05);
+  const ink = '#1d1b18'; c.fillStyle = ink; c.textAlign = 'center';
+  c.font = '700 54px Oswald'; c.letterSpacing = '4px'; c.fillText('TINGKAT PENGANGGURAN', w / 2, 92);
+  c.font = '500 26px Oswald'; c.letterSpacing = '5px'; c.fillText('PERSEN DARI ANGKATAN KERJA · BPS 2026', w / 2, 136);
+  c.fillRect(70, 160, w - 140, 3);
+  const base = h - 140, top = 230, vmax = 20, bars = [['NASIONAL', 'MEI 2026', 4.65], ['USIA 15–24', 'FEB 2026', 16.36], ['USIA 15–24', 'MEI 2026', 17.37]];
+  const bw = 200, gap = (w - 3 * bw) / 4;
+  c.strokeStyle = 'rgba(29,27,24,.35)'; c.lineWidth = 1.5; c.font = '500 22px Oswald'; c.letterSpacing = '2px'; c.textAlign = 'right';
+  for (const v of [0, 5, 10, 15, 20]) { const y = base - (base - top) * v / vmax; c.beginPath(); c.moveTo(gap * .7, y); c.lineTo(w - gap * .5, y); c.stroke(); c.fillText(v + ' %', gap * .62, y + 8); }
+  const tops = [];
+  bars.forEach(([a, b, v], i) => {
+    const x = gap + i * (bw + gap), y = base - (base - top) * v / vmax;
+    c.fillStyle = i === 2 ? '#1d1b18' : '#5d574e'; c.fillRect(x, y, bw, base - y);
+    for (let k = 0; k < (base - y) / 9; k++) { c.fillStyle = 'rgba(220,214,200,.10)'; c.fillRect(x, y + k * 9, bw, 2); }
+    c.fillStyle = ink; c.textAlign = 'center'; c.font = '700 46px Oswald'; c.letterSpacing = '1px'; c.fillText(String(v).replace('.', ',') + ' %', x + bw / 2, y - 22);
+    c.font = '600 26px Oswald'; c.letterSpacing = '3px'; c.fillText(a, x + bw / 2, base + 44); c.font = '500 22px Oswald'; c.fillText(b, x + bw / 2, base + 78);
+    tops.push([x0 + x + bw / 2, y0 + y - 40]);
+  });
+  c.restore();
+  const [rx, ry] = tops[2]; pencil(c, ring(rx, ry + 10, 150, 64, .05), 1, 8);
+}
+
+// ---------- 4. job fair footage + place card ----------
+function shotJobfair(c, t) { const im = A.jobfair, s = 1.04; c.drawImage(im, GW / 2 - im.width * s / 2, GH / 2 - im.height * s / 2, im.width * s, im.height * s); }
+
+// ---------- 5. the map: land only, no borders ----------
+function shotMap(c, t) {
+  c.fillStyle = '#1d1b18'; c.fillRect(0, 0, GW, GH);
+  c.strokeStyle = 'rgba(200,192,176,.10)'; c.lineWidth = 1.5; for (let y = 4; y < GH; y += 9) { c.beginPath(); c.moveTo(0, y); c.lineTo(GW, y); c.stroke(); }
+  const z = 1.0; c.save();
+  c.save(); c.translate(6, 9); c.fillStyle = 'rgba(0,0,0,.55)'; for (const s of MAP.polys) { c.beginPath(); s.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); c.fill(); } c.restore();
+  const g = c.createLinearGradient(0, 300, 0, 800); g.addColorStop(0, '#d9d3c6'); g.addColorStop(1, '#a8a196');
+  c.fillStyle = g; c.strokeStyle = 'rgba(40,36,30,.55)'; c.lineWidth = 1.4;
+  for (const s of MAP.polys) { c.beginPath(); s.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); c.fill(); c.stroke(); }
+  c.strokeStyle = 'rgba(200,192,176,.25)'; c.lineWidth = 2; c.strokeRect(40, 40, GW - 80, GH - 80);
+  // reports landing as dots, one per beat in the film (deterministic positions along the island)
+  const C = MAP.cities, J = [[C.cikarang, 26], [C.bandung, 22], [C.jakarta, 12], [C.sukoharjo, 10], [C.surabaya, 12]];
+  c.fillStyle = 'rgba(20,18,15,.85)';
+  J.forEach(([[x, y], n], j) => { for (let i = 0; i < n; i++) { const a = hash(j * 31 + i) * TAU, r = 6 + hash(j * 17 + i * 3) * 46; c.beginPath(); c.arc(x + Math.cos(a) * r * 1.4, y + Math.sin(a) * r * .55, 4.5, 0, TAU); c.fill(); } });
+  for (const k of ['sukoharjo', 'bandung']) {
+    const [x, y] = C[k]; c.save(); c.translate(x, y); c.fillStyle = '#0f0e0c'; c.beginPath();
+    for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5 - Math.PI / 2, r = i % 2 ? 10 : 25; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+    c.closePath(); c.fill(); c.strokeStyle = '#efe9dc'; c.lineWidth = 2.5; c.stroke(); c.restore();
+  }
+  c.restore();
+  // odometer: Kemnaker Jan to Sep 2026
+  const bx = GW - 470, by = 70; c.fillStyle = 'rgba(12,11,10,.9)'; c.fillRect(bx, by, 400, 150); c.strokeStyle = '#d8d0bf'; c.lineWidth = 2; c.strokeRect(bx + 7, by + 7, 386, 136);
+  c.font = '84px Limelight'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#f1ece1'; c.letterSpacing = '4px'; c.fillText('63.789', bx + 200, by + 66);
+  c.font = '500 22px Oswald'; c.letterSpacing = '4px'; c.fillStyle = '#cfc7b8'; c.fillText('PHK · JAN–SEP 2026', bx + 200, by + 122); c.textBaseline = 'alphabetic';
+}
+const MAPLABELS = [['sukoharjo', 'SUKOHARJO', 'Sritex berhenti total', 34, 40, 'left'], ['bandung', 'JAWA BARAT', '13.044 PHK, tertinggi', -60, -150, 'right']];
+
+// ---------- 6. Sritex: the print on the desk + telegram strip ----------
+function shotSritex(c, t) {
+  bgDesk(c);
+  const im = A.sritex_buruh_gedung, s = 940 / im.width, w = im.width * s, h = im.height * s;
+  c.save(); c.translate(GW / 2, GH / 2 - 70); c.rotate(-.025);
+  c.shadowColor = 'rgba(0,0,0,.6)'; c.shadowBlur = 36; c.shadowOffsetY = 14; c.fillStyle = '#e6e0d3'; c.fillRect(-w / 2 - 22, -h / 2 - 22, w + 44, h + 44); c.shadowColor = 'transparent';
+  c.drawImage(im, -w / 2, -h / 2, w, h); c.restore();
+  // telegram strip: our own wording, facts from Kemnaker / company statement
+  const tw = 1060, th = 92; c.save(); c.translate(GW / 2 + 30, GH / 2 + 345); c.rotate(.018);
+  c.shadowColor = 'rgba(0,0,0,.55)'; c.shadowBlur = 24; c.shadowOffsetY = 10; c.fillStyle = '#d6cfbf'; c.fillRect(-tw / 2, -th / 2, tw, th); c.shadowColor = 'transparent';
+  paperNoise(c, tw, th, 77, .05);
+  c.fillStyle = '#1d1b18'; c.font = '600 34px Oswald'; c.letterSpacing = '5px'; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText('SUKOHARJO 1 MARET 2025 STOP SRITEX TUTUP STOP 10.665 DI-PHK', 0, 2); c.restore(); c.textBaseline = 'alphabetic';
+}
+
+// ---------- 7. item title card ----------
+function shotCard(c, t) {
+  c.fillStyle = '#0f0e0d'; c.fillRect(0, 0, GW, GH);
+  c.save(); const z = 1.03; c.translate(GW / 2, GH / 2); c.scale(z, z); c.translate(-GW / 2, -GH / 2);
+  const bx = 150, by = 150, bw = GW - 300, bh = GH - 300;
+  c.strokeStyle = '#d9d2c3'; c.lineWidth = 4; c.strokeRect(bx, by, bw, bh); c.lineWidth = 1.5; c.strokeRect(bx + 16, by + 16, bw - 32, bh - 32);
+  for (const [cx, cy, a0] of [[bx, by, 0], [bx + bw, by, Math.PI / 2], [bx + bw, by + bh, Math.PI], [bx, by + bh, -Math.PI / 2]])
+    for (let k = 0; k < 5; k++) { c.strokeStyle = 'rgba(217,210,195,.9)'; c.lineWidth = 2; c.beginPath(); c.arc(cx, cy, 30 + k * 16, a0, a0 + Math.PI / 2); c.stroke(); }
+  silverText(c, 'BUKU KAS NEGARA', GW / 2, GH / 2 - 40, 104);
+  c.fillStyle = '#d9d2c3'; c.fillRect(GW / 2 - 240, GH / 2 + 30, 480, 3);
+  c.font = '600 46px Oswald'; c.letterSpacing = '22px'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#ece7dc'; c.fillText('APBN 2026', GW / 2 + 11, GH / 2 + 100);
+  c.restore(); c.textBaseline = 'alphabetic';
+}
+
+// ---------- 8. split screen: two ledgers ----------
+function ledger(c, x, w, rows, total) {
+  const g = c; g.save(); g.translate(x, 0);
+  g.fillStyle = '#dcd6c8'; g.fillRect(0, 0, w, GH); paperNoise(g, w, GH, x * .3 + 5, .05);
+  g.strokeStyle = 'rgba(70,90,110,.28)'; g.lineWidth = 1.5; for (let y = 250; y < GH - 60; y += 54) { g.beginPath(); g.moveTo(40, y); g.lineTo(w - 40, y); g.stroke(); }
+  g.strokeStyle = 'rgba(120,40,30,.35)'; g.beginPath(); g.moveTo(w - 230, 200); g.lineTo(w - 230, GH - 60); g.stroke();
+  g.fillStyle = '#1d1b18'; g.textBaseline = 'alphabetic';
+  rows.forEach(([a, b], i) => { const y = 340 + i * 108; g.font = '500 34px "Noto Sans"'; g.textAlign = 'left'; g.fillText(a, 60, y); g.font = '700 46px Oswald'; g.textAlign = 'right'; g.fillText(b, w - 56, y); });
+  g.fillRect(60, 690, w - 116, 4); g.fillRect(60, 700, w - 116, 2);
+  g.font = '600 32px Oswald'; g.letterSpacing = '3px'; g.textAlign = 'left'; g.fillText('TOTAL (PROYEKSI)', 60, 780); g.font = '700 64px Oswald'; g.textAlign = 'right'; g.letterSpacing = '1px'; g.fillText(total, w - 56, 784);
+  g.font = '500 24px Oswald'; g.letterSpacing = '3px'; g.textAlign = 'right'; g.fillText('TRILIUN RUPIAH', w - 56, 830);
+  g.restore();
+}
+function shotSplit(c, t) {
+  const half = (GW - 8) / 2; c.fillStyle = '#0c0b0a'; c.fillRect(0, 0, GW, GH);
+  ledger(c, 0, half, [['Makan Bergizi Gratis', '335'], ['Bunga utang', '599,44']], '3.942,4');
+  ledger(c, half + 8, half, [['Proyeksi Menkeu', 'OKT 2026']], '3.208,1');
+  c.fillStyle = '#ece6da'; c.fillRect(half, 0, 8, GH);
+  // the stamp across the seam: the gap between the two totals
+  c.save(); c.translate(GW / 2, 590); c.rotate(-.06); c.strokeStyle = 'rgba(20,18,15,.88)'; c.lineWidth = 6; c.strokeRect(-330, -58, 660, 116); c.lineWidth = 2; c.strokeRect(-318, -46, 636, 92);
+  c.fillStyle = 'rgba(20,18,15,.9)'; c.font = '700 54px Oswald'; c.letterSpacing = '8px'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('DEFISIT 2,85 % PDB', 4, 2); c.restore(); c.textBaseline = 'alphabetic';
+}
+
+// ---------- 9. the middle class as pictograms: one figure = one million people ----------
+function figure(c, x, y, s, filled) {
+  c.beginPath(); c.arc(x, y - 30 * s, 10 * s, 0, TAU); c.moveTo(x - 14 * s, y + 18 * s); c.lineTo(x - 14 * s, y - 6 * s); c.quadraticCurveTo(x - 14 * s, y - 16 * s, x - 4 * s, y - 16 * s); c.lineTo(x + 4 * s, y - 16 * s); c.quadraticCurveTo(x + 14 * s, y - 16 * s, x + 14 * s, y - 6 * s); c.lineTo(x + 14 * s, y + 18 * s); c.closePath();
+  if (filled) c.fill(); else { c.save(); c.setLineDash([4, 4]); c.stroke(); c.restore(); }
+}
+function shotClass(c, t) {
+  c.fillStyle = '#1d1b18'; c.fillRect(0, 0, GW, GH);
+  const rowsY = [300, 690], vals = [57.33, 46.7], labs = ['2019 · 57,33 JUTA (BPS)', '2025 · 46,7 JUTA (ESTIMASI MANDIRI INSTITUTE)'];
+  let gapPts = null;
+  rowsY.forEach((Y, r) => {
+    c.fillStyle = '#efe9dc'; c.font = '600 32px Oswald'; c.letterSpacing = '5px'; c.textAlign = 'left'; c.fillText(labs[r], 90, Y - 170);
+    const n = 57, cols = 29, dx = 45, dy = 96;
+    for (let i = 0; i < n; i++) {
+      const x = 105 + (i % cols) * dx, y = Y - 60 + Math.floor(i / cols) * dy, full = i < Math.floor(vals[r]);
+      c.fillStyle = '#d9d3c6'; c.strokeStyle = 'rgba(217,211,198,.7)'; c.lineWidth = 2; if (full || r === 1) figure(c, x, y, 1.15, full);
+      if (r === 1 && i === Math.floor(vals[1])) gapPts = [x, y];
+    }
+  });
+  // ring the empty places: the drop since 2019
+  const [gx, gy] = gapPts; pencil(c, ring(gx + 225, gy, 300, 92, -.03), 1, 8);
+}
+
+const SHOTS = [
+  { f: shotIdent, t: 1.6, foot: 0, sub: 'Warta Kilat Nusantara! Kabar ekonomi pekan ini!' },
+  { f: shotPaper, t: 1.0, foot: 1, sub: 'Pengangguran nasional turun ke 4,65%' },
+  { f: shotChart, t: 1.0, foot: 1, sub: 'Usia 15–24 tahun: angkanya malah naik, 17,37%!' },
+  { f: shotJobfair, t: 1.0, foot: 1, sub: 'Sekitar 25.000 pelamar menyerbu satu bursa kerja', tag: ['CIKARANG · 27 MEI 2025', 'Bekasi Pasti Kerja Expo'] },
+  { f: shotMap, t: 1.0, foot: 0, sub: 'Januari–September 2026: 63.789 orang di-PHK', map: 1 },
+  { f: shotSritex, t: 1.0, foot: 1, sub: '10.665 pekerja kehilangan pekerjaan', tag: ['SUKOHARJO · 1 MARET 2025', 'PT Sri Rejeki Isman (Sritex)'] },
+  { f: shotCard, t: 1.0, foot: 0, sub: null },
+  { f: shotSplit, t: 1.0, foot: 1, sub: 'Belanja tumbuh lebih cepat dari pendapatan', split: ['BELANJA', 'PENDAPATAN'] },
+  { f: shotClass, t: 1.0, foot: 0, sub: 'Kelas menengah berkurang lebih dari 10 juta orang' },
+];
+window.DUR = SHOTS.length;
+
+// ---------- film look + type layer ----------
+function filmLook(f, strength) {
+  P.save(); P.globalCompositeOperation = 'multiply'; P.fillStyle = '#efe7d6'; P.fillRect(0, 0, GW, GH);
+  P.globalCompositeOperation = 'screen'; P.fillStyle = '#17140f'; P.fillRect(0, 0, GW, GH); P.globalCompositeOperation = 'source-over';
+  const g = P.createRadialGradient(GW / 2, GH / 2, GH * .42, GW / 2, GH / 2, GH * .95); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${.62 * strength + .2})`); P.fillStyle = g; P.fillRect(0, 0, GW, GH);
+  if (strength > 0) {
+    for (let k = 0; k < 3; k++) { const id = Math.floor((f + k * 5) / 9) * 7 + k; if (hash(id * 1.3) > .55) continue; const x = hash(id * 2.1) * GW; P.fillStyle = hash(id) > .5 ? 'rgba(255,250,240,.22)' : 'rgba(0,0,0,.28)'; const y0 = hash(id * 5.1) * GH * .4, y1 = GH - hash(id * 6.3) * GH * .3; P.fillRect(x, y0, 1 + hash(id * 8.2) * 1.6, y1 - y0); }
+    const n = Math.floor(hash(f * .91) * 5); for (let k = 0; k < n; k++) { const s = f * 13 + k * 3.1, x = hash(s) * GW, y = hash(s + 1) * GH, r = 1 + hash(s + 2) * 4; P.fillStyle = hash(s + 3) > .35 ? 'rgba(10,8,6,.55)' : 'rgba(255,252,245,.45)'; P.beginPath(); P.ellipse(x, y, r, r * (.4 + hash(s + 4)), hash(s + 5) * 3, 0, TAU); P.fill(); }
+  }
+  P.restore();
+}
+const SUBF = '600 40px "Noto Sans"';
+function subBand() {
+  X.save(); X.beginPath(); X.roundRect(GX, 0, GW, GH, 26); X.clip();
+  const g = X.createLinearGradient(0, H - 150, 0, H); g.addColorStop(0, 'rgba(10,9,8,0)'); g.addColorStop(.3, 'rgba(10,9,8,.93)'); g.addColorStop(1, 'rgba(10,9,8,.96)'); X.fillStyle = g; X.fillRect(GX, H - 150, GW, 150); X.restore();
+}
+function subtitle(txt) {
+  X.save(); X.textAlign = 'center'; X.textBaseline = 'alphabetic'; X.lineJoin = 'round'; X.font = SUBF; X.letterSpacing = '1px';
+  X.lineWidth = 8; X.strokeStyle = 'rgba(8,7,6,.92)'; X.strokeText(txt, W / 2, H - 54); X.fillStyle = '#fbf8f1'; X.fillText(txt, W / 2, H - 54); X.restore();
+}
+function tagCard(x, y, l1, l2) {
+  X.save(); X.font = '600 30px Oswald'; X.letterSpacing = '5px'; const w1 = X.measureText(l1).width; X.font = '500 26px "Noto Sans"'; X.letterSpacing = '1px'; const w2 = X.measureText(l2).width;
+  const w = Math.max(w1, w2, 220) + 44; X.fillStyle = 'rgba(12,11,10,.8)'; X.fillRect(x, y, w, 104); X.strokeStyle = '#d8d0bf'; X.lineWidth = 2; X.strokeRect(x + 6, y + 6, w - 12, 92);
+  X.font = '600 30px Oswald'; X.letterSpacing = '5px'; X.fillStyle = '#f3eee4'; X.textBaseline = 'alphabetic'; X.fillText(l1, x + 22, y + 46);
+  X.font = '500 26px "Noto Sans"'; X.letterSpacing = '1px'; X.fillStyle = '#d6cfc0'; X.fillText(l2, x + 22, y + 84); X.restore();
+}
+function boxLabel(cx, y, l1, l2, align = 'center') {
+  X.save(); X.font = '600 32px Oswald'; X.letterSpacing = '6px'; const w1 = X.measureText(l1).width; X.font = '500 24px "Noto Sans"'; X.letterSpacing = '1px'; const w2 = l2 ? X.measureText(l2).width : 0;
+  const w = Math.max(w1, w2, 180) + 56, h = l2 ? 100 : 66, x = align === 'center' ? cx - w / 2 : align === 'right' ? cx - w : cx;
+  X.fillStyle = 'rgba(12,11,10,.86)'; X.fillRect(x, y, w, h); X.strokeStyle = '#d8d0bf'; X.lineWidth = 2; X.strokeRect(x + 6, y + 6, w - 12, h - 12);
+  X.textAlign = 'center'; X.font = '600 32px Oswald'; X.letterSpacing = '6px'; X.fillStyle = '#f3eee4'; X.fillText(l1, x + w / 2 + 3, y + 46);
+  if (l2) { X.font = '500 24px "Noto Sans"'; X.letterSpacing = '1px'; X.fillStyle = '#d6cfc0'; X.fillText(l2, x + w / 2, y + 82); }
+  X.restore();
+}
+
+window.render = (t) => {
+  const i = clamp(Math.floor(t), 0, SHOTS.length - 1), S = SHOTS[i], f = Math.floor(t * 24);
+  X.setTransform(1, 0, 0, 1, 0, 0); X.fillStyle = '#000'; X.fillRect(0, 0, W, H);
+  P.setTransform(1, 0, 0, 1, 0, 0); P.globalAlpha = 1; P.globalCompositeOperation = 'source-over'; P.fillStyle = '#000'; P.fillRect(0, 0, GW, GH);
+  P.save(); S.f(P, S.t); P.restore();
+  filmLook(f, S.foot);
+  const wx = S.foot ? (vnoise(f * .21) - .5) * 3.2 : 0, wy = S.foot ? (vnoise(f * .17 + 9) - .5) * 4.4 : 0;
+  X.save(); X.beginPath(); X.roundRect(GX, 0, GW, GH, 26); X.clip(); X.drawImage(PIC, GX + wx, wy); X.restore();
+  if (S.tag) tagCard(GX + 48, 56, ...S.tag);
+  if (S.split) { const half = (GW - 8) / 2; boxLabel(GX + half / 2, 60, S.split[0]); boxLabel(GX + half + 8 + half / 2, 60, S.split[1]); }
+  if (S.map) for (const [k, l1, l2, dx, dy, al] of MAPLABELS) { const [x, y] = MAP.cities[k]; boxLabel(GX + x + dx, y + dy, l1, l2, al); }
+  if (S.sub) { subBand(); subtitle(S.sub); }
+};
+window.render(0);
+window.READY = true;
+</script></body></html>

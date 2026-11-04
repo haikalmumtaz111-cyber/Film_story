@@ -1,0 +1,605 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Warta Kilat Nusantara</title>
+<style>
+@font-face{font-family:Limelight;src:url(fonts/Limelight-Regular.ttf)}
+@font-face{font-family:Oswald;src:url(fonts/Oswald.ttf);font-weight:200 700}
+@font-face{font-family:"Noto Sans";src:url(fonts/NotoSans.ttf);font-weight:100 900}
+html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}
+</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script type="module">
+import { clamp, lerp, seg, ss, eio, eo, ei, back, hash, vnoise, TAU } from '/core/lib.js';
+// "Warta Kilat Nusantara": a 1920s-style sound newsreel on 2025–26 Indonesian labour and budget data.
+const W = 1920, H = 1080, GX = 220, GW = 1480, GH = 1080, FPS = 24;
+const cv = document.getElementById('c'), X = cv.getContext('2d');
+const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+const PIC = mk(GW, GH), P = PIC.getContext('2d'), TMP = mk(GW, GH), T2 = TMP.getContext('2d'), FROM = mk(GW, GH), F1 = FROM.getContext('2d'), AUX = mk(GW, GH), AX = AUX.getContext('2d');
+const TL = await (await fetch('timeline.json')).json();
+const MAP = await (await fetch('assets/java.json')).json();
+const HIT = TL.hits, SEC = Object.fromEntries(TL.secs.map(s => [s.id, s])), BEAT = TL.beat, BAR = TL.bar;
+const NOSUB = new URLSearchParams(location.search).has('nosub');
+window.DUR = TL.dur;
+
+const img = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => { console.error('missing ' + src); r(null); }; i.src = src; });
+const A = {};
+await Promise.all(['ojol_cnbc', 'pkl_rujak', 'ojol_liputan6', 'pekerja_duduk_detik', 'pabrik_garmen_antara', 'sritex_buruh_gedung', 'sritex_buruh_menangis', 'demo_buruh_pailit']
+  .map(async n => A[n] = await img(`assets/foto/${n}.jpg`)));
+const CL = {};
+await Promise.all(Object.entries(TL.clips).map(async ([k, c]) => {
+  const n = Math.floor(c.dur * FPS) - 1;
+  CL[k] = (await Promise.all([...Array(n).keys()].map(i => img(`assets/${k}/${String(i).padStart(3, '0')}.jpg`)))).filter(Boolean);
+}));
+for (const f of ['120px Limelight', '700 40px Oswald', '600 40px "Noto Sans"', 'italic 600 38px "Noto Sans"', '400 18px "Noto Sans"']) await document.fonts.load(f, 'ABC abc 0123');
+
+// ---------- helpers ----------
+const frameOf = t => Math.floor(t * FPS + 1e-6);
+const clipFrame = (k, t, t0) => { const a = CL[k]; return a[clamp(frameOf(Math.max(0, t - t0)), 0, a.length - 1)]; };
+const cover = (im, w = GW, h = GH) => Math.max(w / im.width, h / im.height);
+function footage(c, k, t, t0, push = [1, 1.05], fx = .5, fy = .5) {
+  const im = clipFrame(k, t, t0), s = cover(im) * lerp(push[0], push[1], seg(t, t0, t0 + CL[k].length / FPS));
+  c.fillStyle = '#000'; c.fillRect(0, 0, GW, GH);
+  const w = im.width * s, h = im.height * s; c.drawImage(im, clamp(GW / 2 - fx * w, GW - w, 0), clamp(GH / 2 - fy * h, GH - h, 0), w, h);
+}
+function pencil(c, pts, u, wid = 7, alpha = .92) {
+  if (u <= 0 || pts.length < 2) return;
+  const n = Math.max(2, Math.floor(pts.length * clamp(u)));
+  for (const [dx, dy, a, lw] of [[0, 0, alpha, wid], [1.6, -1.2, alpha * .45, wid * .55]]) {
+    c.save(); c.strokeStyle = `rgba(250,248,240,${a})`; c.lineWidth = lw; c.lineCap = 'round'; c.lineJoin = 'round'; c.beginPath();
+    for (let i = 0; i < n; i++) { const [x, y] = pts[i], j = (hash(i * 1.7 + x * .01) - .5) * 1.6; i ? c.lineTo(x + dx + j, y + dy + j) : c.moveTo(x + dx, y + dy); }
+    c.stroke(); c.restore();
+  }
+}
+const ring = (cx, cy, rx, ry, rot = 0, turns = 1.12) => [...Array(64).keys()].map(i => { const a = -2.2 + i / 63 * TAU * turns, r = 1 + .05 * Math.sin(i * .7); return [cx + Math.cos(a + rot) * rx * r, cy + Math.sin(a + rot) * ry * r]; });
+const lineP = (x0, y0, x1, y1, n = 24) => [...Array(n).keys()].map(i => { const u = i / (n - 1); return [lerp(x0, x1, u), lerp(y0, y1, u) + Math.sin(u * 9) * 2]; });
+function pencilDark(c, pts, u, wid = 4) {
+  if (u <= 0) return; const n = Math.max(2, Math.floor(pts.length * u));
+  c.save(); c.strokeStyle = 'rgba(20,18,16,.85)'; c.lineWidth = wid; c.lineCap = 'round';
+  for (const off of [0, 2.4]) { c.beginPath(); for (let i = 0; i < n; i++) { const [x, y] = pts[i]; i ? c.lineTo(x, y + off + Math.sin(i * 1.3) * .6) : c.moveTo(x, y + off); } c.stroke(); }
+  c.restore();
+}
+const jolt = (t, T, amp = 16) => t > T ? Math.exp(-(t - T) * 14) * Math.sin((t - T) * 70) * amp : 0;
+function bgDesk(c) { const g = c.createRadialGradient(GW / 2, GH * .45, 100, GW / 2, GH / 2, 1000); g.addColorStop(0, '#5b5751'); g.addColorStop(1, '#151413'); c.fillStyle = g; c.fillRect(0, 0, GW, GH); }
+function silverText(c, txt, x, y, size, font = 'Limelight', align = 'center', ls = '0px') {
+  c.font = `${size}px ${font}`; c.textAlign = align; c.textBaseline = 'middle'; c.letterSpacing = ls;
+  c.lineJoin = 'round'; c.lineWidth = size * .12; c.strokeStyle = '#0c0b0a'; c.strokeText(txt, x, y);
+  const g = c.createLinearGradient(0, y - size * .5, 0, y + size * .5);
+  g.addColorStop(0, '#ffffff'); g.addColorStop(.48, '#d9d4ca'); g.addColorStop(.52, '#9e978a'); g.addColorStop(1, '#efebe2');
+  c.fillStyle = g; c.fillText(txt, x, y); c.textBaseline = 'alphabetic';
+}
+function paperNoise(c, w, h, seed, amt = .05) { for (let i = 0; i < 2600; i++) { const s = seed + i * 1.37; c.fillStyle = hash(s) > .5 ? `rgba(0,0,0,${amt})` : `rgba(255,255,255,${amt})`; c.fillRect(hash(s + 1) * w, hash(s + 2) * h, 1 + hash(s + 3) * 3, 1 + hash(s + 4) * 2); } }
+// something arrives as news: lands with a 3 % bounce and a jolt (u = 0..1 over the drop)
+function slamIn(c, t, T, draw, dur = .16) {
+  const u = eo(seg(t, T - dur, T)); if (u <= 0) return;
+  c.save(); c.globalAlpha = clamp(u * 3); c.translate(0, jolt(t, T, 12)); const s = lerp(1.35, 1, u) * (1 + Math.exp(-Math.max(0, t - T) * 18) * .03);
+  c.translate(GW / 2, GH / 2); c.scale(s, s); c.translate(-GW / 2, -GH / 2); draw(c); c.restore();
+}
+function print(c, im, cx, cy, w, rot, border = 22) {   // a photograph lying on the desk
+  if (!im) return; const s = w / im.width, h = im.height * s;
+  c.save(); c.translate(cx, cy); c.rotate(rot); c.shadowColor = 'rgba(0,0,0,.6)'; c.shadowBlur = 36; c.shadowOffsetY = 14;
+  c.fillStyle = '#e6e0d3'; c.fillRect(-w / 2 - border, -h / 2 - border, w + 2 * border, h + 2 * border); c.shadowColor = 'transparent';
+  c.drawImage(im, -w / 2, -h / 2, w, h); c.restore();
+  return { cx, cy, w, h, rot };
+}
+function stamp(c, txt, cx, cy, rot, u, size = 54, w = null) {   // a rubber stamp, pressed on the beat
+  if (u <= 0) return; c.save(); c.translate(cx, cy); c.rotate(rot); const s = lerp(1.5, 1, eo(u)); c.scale(s, s); c.globalAlpha = clamp(u * 3) * .9;
+  c.font = `700 ${size}px Oswald`; c.letterSpacing = '8px'; const tw = w || c.measureText(txt).width + 70, th = size * 2.1;
+  c.strokeStyle = 'rgba(20,18,15,.9)'; c.lineWidth = 6; c.strokeRect(-tw / 2, -th / 2, tw, th); c.lineWidth = 2; c.strokeRect(-tw / 2 + 12, -th / 2 + 12, tw - 24, th - 24);
+  c.fillStyle = 'rgba(20,18,15,.92)'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, 4, 2); c.restore();
+}
+function stampLight(c, txt, cx, cy, rot, u, size = 50) {   // the same stamp on a dark ground
+  if (u <= 0) return; c.save(); c.translate(cx, cy); c.rotate(rot); c.scale(lerp(1.5, 1, eo(u)), lerp(1.5, 1, eo(u))); c.globalAlpha = clamp(u * 3);
+  c.font = `700 ${size}px Oswald`; c.letterSpacing = '8px'; const tw = c.measureText(txt).width + 70, th = size * 2.1;
+  c.fillStyle = 'rgba(14,13,11,.85)'; c.fillRect(-tw / 2, -th / 2, tw, th);
+  c.strokeStyle = '#efe9dc'; c.lineWidth = 5; c.strokeRect(-tw / 2, -th / 2, tw, th); c.lineWidth = 2; c.strokeRect(-tw / 2 + 12, -th / 2 + 12, tw - 24, th - 24);
+  c.fillStyle = '#efe9dc'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, 4, 2); c.restore();
+}
+
+// ---------- ident ----------
+function globe(c, cx, cy, R, rot, alpha = 1) {
+  c.save(); c.globalAlpha = alpha; const g = c.createRadialGradient(cx - R * .35, cy - R * .4, R * .1, cx, cy, R);
+  g.addColorStop(0, '#f4f1ea'); g.addColorStop(.55, '#a9a49a'); g.addColorStop(1, '#34312c'); c.fillStyle = g; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.fill();
+  const tilt = .38, ct = Math.cos(tilt), st = Math.sin(tilt);
+  const P3 = (lat, lon) => { const x = Math.cos(lat) * Math.sin(lon + rot), y = Math.sin(lat), z = Math.cos(lat) * Math.cos(lon + rot); return [cx + R * x, cy - R * (y * ct - z * st), y * st + z * ct]; };
+  c.strokeStyle = 'rgba(20,18,15,.75)'; c.lineWidth = Math.max(1.2, R * .012);
+  const line = pts => { c.beginPath(); let on = false; for (const p of pts) { if (p[2] > 0) { on ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]); on = true; } else on = false; } c.stroke(); };
+  for (let k = 0; k < 12; k++) { const pts = []; for (let a = -90; a <= 90; a += 4) pts.push(P3(a * Math.PI / 180, k * TAU / 12)); line(pts); }
+  for (let la = -60; la <= 60; la += 30) { const pts = []; for (let a = 0; a <= 360; a += 4) pts.push(P3(la * Math.PI / 180, a * Math.PI / 180)); line(pts); }
+  c.lineWidth = Math.max(2, R * .025); c.strokeStyle = 'rgba(10,9,8,.9)'; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.stroke(); c.restore();
+}
+function sunburst(c, cx, cy, rot, a) { c.save(); c.globalAlpha = a; for (let i = 0; i < 36; i++) { const a0 = rot + i * TAU / 36; c.fillStyle = i % 2 ? '#2a2723' : '#1b1916'; c.beginPath(); c.moveTo(cx, cy); c.arc(cx, cy, 1600, a0, a0 + TAU / 72); c.closePath(); c.fill(); } c.restore(); }
+function beams(c, t, on, base = 0) {
+  if (on <= 0) return; c.save(); c.globalCompositeOperation = 'lighter';
+  for (const side of [-1, 1]) {
+    const ox = GW / 2 + side * 640, oy = GH + 40, ang = -Math.PI / 2 - side * (.42 + .22 * Math.sin(t * 1.9 + (side > 0 ? 1.1 : 0)) + base), L = 1500, sp = .085;
+    const g = c.createLinearGradient(ox, oy, ox + Math.cos(ang) * L, oy + Math.sin(ang) * L);
+    g.addColorStop(0, `rgba(255,252,240,${.55 * on})`); g.addColorStop(.7, `rgba(255,250,235,${.16 * on})`); g.addColorStop(1, 'rgba(255,250,235,0)');
+    c.fillStyle = g; c.beginPath(); c.moveTo(ox, oy); c.lineTo(ox + Math.cos(ang - sp) * L, oy + Math.sin(ang - sp) * L); c.lineTo(ox + Math.cos(ang + sp) * L, oy + Math.sin(ang + sp) * L); c.closePath(); c.fill();
+  }
+  c.restore();
+}
+function nameplate(c, t, t0, y) {
+  const u = seg(t, t0, t0 + .5); if (u <= 0) return;
+  c.save(); c.translate(GW / 2, y); const s = lerp(2.4, 1, back(u, 1.3)); c.scale(s, s); c.globalAlpha = clamp(u * 3); silverText(c, 'WARTA KILAT', 0, 0, 118); c.restore();
+  const v = seg(t, t0 + .35, t0 + .65); if (v > 0) { c.save(); c.globalAlpha = v; silverText(c, 'NUSANTARA', GW / 2 + 9, y + 104, 58, 'Limelight', 'center', '18px'); c.restore(); }
+}
+function sceneLogo(c, t) {
+  c.fillStyle = '#121110'; c.fillRect(0, 0, GW, GH);
+  const T = HIT.beams_on, on = t < T ? 0 : clamp(1 - .6 * Math.exp(-(t - T) * 9)), flash = t >= T ? Math.exp(-(t - T) * 7) : 0;
+  sunburst(c, GW / 2, GH * .44, t * .12, on); beams(c, t, on);
+  globe(c, GW / 2, GH * .36, lerp(60, 190, eo(seg(t, .1, .9))), t * 1.4, clamp(on * 1.4));
+  nameplate(c, t, .3, GH * .69);
+  const v = seg(t, 1.1, 1.4); if (v > 0) { c.save(); c.globalAlpha = v; c.font = '500 26px Oswald'; c.letterSpacing = '9px'; c.textAlign = 'center'; c.fillStyle = '#b9b2a4'; c.fillText('KABAR EKONOMI · PEKAN INI', GW / 2 + 4, GH * .91); c.restore(); }
+  if (flash > 0) { c.fillStyle = `rgba(255,255,250,${flash * .5})`; c.fillRect(0, 0, GW, GH); }
+}
+
+// ---------- newspapers (our own invented paper, never a real outlet) ----------
+function makePaper(date, head, deck, body, headSize = 98) {
+  const w = 1500, h = 1000, c = mk(w, h), g = c.getContext('2d');
+  g.fillStyle = '#dcd6c8'; g.fillRect(0, 0, w, h); paperNoise(g, w, h, head.length * 3.1, .06);
+  g.fillStyle = '#1d1b18'; g.textAlign = 'center'; g.font = '700 128px Oswald'; g.letterSpacing = '14px'; g.fillText('WARTA KILAT', w / 2, 150);
+  g.fillRect(60, 178, w - 120, 5); g.fillRect(60, 232, w - 120, 2);
+  g.font = '500 22px Oswald'; g.letterSpacing = '4px'; g.textAlign = 'left'; g.fillText(date, 66, 216); g.textAlign = 'right'; g.fillText('EDISI SORE', w - 66, 216);
+  g.textAlign = 'center'; g.font = `700 ${headSize}px Oswald`; g.letterSpacing = '2px'; g.fillText(head, w / 2, 370);
+  const full = g.measureText(head).width;
+  g.font = 'italic 600 38px "Noto Sans"'; g.letterSpacing = '0px'; g.fillText(deck, w / 2, 438); g.fillRect(60, 470, w - 120, 2);
+  g.font = '400 21px "Noto Sans"'; g.textAlign = 'left'; const cols = 4, cw = (w - 120 - (cols - 1) * 36) / cols;
+  for (let k = 0; k < cols; k++) {
+    let x = 60 + k * (cw + 36), y = 512, words = (body + ' ' + body).split(' ').slice(k * 9), line = '';
+    for (const wd of words) { const tst = line ? line + ' ' + wd : wd; if (g.measureText(tst).width > cw) { g.fillText(line, x, y); y += 30; line = wd; if (y > h - 40) break; } else line = tst; }
+    if (k) g.fillRect(x - 19, 490, 1.5, h - 520);
+  }
+  const v = g.createRadialGradient(w / 2, h / 2, h * .3, w / 2, h / 2, h); v.addColorStop(0, 'rgba(60,50,30,0)'); v.addColorStop(1, 'rgba(60,50,30,.22)'); g.fillStyle = v; g.fillRect(0, 0, w, h);
+  c.headX = [w / 2 - full / 2, w / 2 + full / 2]; g.font = `700 ${headSize}px Oswald`; g.letterSpacing = '2px'; c.ctx = g;
+  return c;
+}
+const PAPER1 = makePaper('JAKARTA, RABU 5 AGUSTUS 2026', 'PENGANGGURAN TURUN KE 4,65 %', 'BPS: terendah sejak 1994, tapi 7,22 juta orang masih menganggur',
+  'Badan Pusat Statistik mengumumkan tingkat pengangguran terbuka per Mei 2026 sebesar 4,65 persen, turun 0,03 poin dibanding Februari. Jumlah penganggur tercatat 7,22 juta orang. Kelompok umur 15 sampai 24 tahun tetap menjadi yang tertinggi, yakni 17,37 persen, naik dari 16,36 persen pada Februari. Pekerja informal mencapai 59,30 persen dari penduduk yang bekerja.');
+{ const g = PAPER1.ctx, tail = g.measureText('4,65 %').width; PAPER1.hl = [PAPER1.headX[1] - tail, PAPER1.headX[1]]; }
+const PAPER2 = makePaper('JAKARTA, SABTU 30 AGUSTUS 2025', 'PROTES TUNJANGAN DPR', 'Mahasiswa dan warga turun ke jalan, lahir "17+8 Tuntutan Rakyat"',
+  'Kontroversi tunjangan anggota DPR memicu gelombang demonstrasi pada akhir Agustus 2025. Daftar 17+8 Tuntutan Rakyat beredar luas di media sosial: tujuh belas tuntutan jangka pendek dan delapan tuntutan jangka panjang. Pada 5 September 2025 pimpinan DPR mengumumkan penghentian tunjangan rumah anggota yang berlaku sejak 31 Agustus 2025 serta moratorium kunjungan kerja ke luar negeri.', 120);
+function spinPaper(c, t, im, T0, TS, after) {
+  bgDesk(c); const sFit = (GW - 70) / im.width;
+  const drawAt = (s, rot, fx, fy, alpha, oy = 0) => { c.save(); c.globalAlpha = alpha; c.translate(GW / 2, GH / 2 + oy); c.rotate(rot); c.scale(s, s); c.shadowColor = 'rgba(0,0,0,.6)'; c.shadowBlur = 40 / s; c.shadowOffsetY = 14 / s; c.drawImage(im, -fx * im.width, -fy * im.height); c.restore(); };
+  if (t < TS) { for (let k = 3; k >= 0; k--) { const u = clamp((t - k * .018 - T0) / (TS - T0)); drawAt(sFit * (.06 + .94 * Math.pow(u, 2.3)), -Math.pow(1 - u, 1.25) * 2.5 * TAU, .5, .5, k ? .22 : 1); } return null; }
+  const { s, fx, fy, oy } = after(sFit), k2 = Math.exp(-(t - TS) * 18) * .03;
+  drawAt(s * (1 + k2), 0, fx, fy, 1, oy + jolt(t, TS));
+  return { s: s * (1 + k2), fx, fy, oy: oy + jolt(t, TS), toG: (x, y) => [GW / 2 + (x - fx * im.width) * s * (1 + k2), GH / 2 + oy + jolt(t, TS) + (y - fy * im.height) * s * (1 + k2)] };
+}
+function scenePaper(c, t) {
+  const r = spinPaper(c, t, PAPER1, HIT.paper_fly, HIT.paper_slam, sFit => {
+    const p = ss(seg(t, HIT.paper_slam + .15, HIT.stop1)), z = lerp(1, 1.04, p) * (1 + .02 * seg(t, HIT.stop1, SEC.paper.t1));
+    return { s: sFit * z, fx: .5, fy: lerp(.5, .40, p), oy: jolt(t, HIT.stop1, 10) };
+  });
+  if (!r) return;
+  const [ax, ay] = r.toG(PAPER1.hl[0] - 6, 394), [bx] = r.toG(PAPER1.hl[1] + 6, 394);
+  pencil(c, lineP(ax, ay, bx, ay - 6, 30), seg(t, HIT.ul_465, HIT.ul_465 + .3), 8);
+}
+
+// ---------- bulletin cards: values drawn to scale ----------
+function barCard(c, t, T0, title, sub, bars, vmax, ticks, unit, ringT, ringI, src) {
+  bgDesk(c);
+  const z = lerp(1, 1.05, ss(seg(t, T0, T0 + 8)));
+  c.save(); c.translate(GW / 2, GH / 2); c.scale(z, z); c.translate(-GW / 2, -GH / 2);
+  const x0 = 170, y0 = 100, w = GW - 340, h = GH - 230;
+  c.save(); c.shadowColor = 'rgba(0,0,0,.6)'; c.shadowBlur = 40; c.shadowOffsetY = 14; c.fillStyle = '#dcd6c8'; c.fillRect(x0, y0, w, h); c.restore();
+  c.save(); c.translate(x0, y0); paperNoise(c, w, h, title.length, .05);
+  const ink = '#1d1b18'; c.fillStyle = ink; c.textAlign = 'center';
+  c.font = '700 54px Oswald'; c.letterSpacing = '4px'; c.fillText(title, w / 2, 92); c.font = '500 26px Oswald'; c.letterSpacing = '5px'; c.fillText(sub, w / 2, 136); c.fillRect(70, 160, w - 140, 3);
+  c.font = '400 19px "Noto Sans"'; c.letterSpacing = '0px'; c.textAlign = 'right'; c.fillText(src, w - 70, h - 22);
+  const base = h - 150, top = 250, n = bars.length, bw = 210, gap = (w - n * bw) / (n + 1);
+  c.strokeStyle = 'rgba(29,27,24,.35)'; c.lineWidth = 1.5; c.font = '500 22px Oswald'; c.letterSpacing = '2px'; c.textAlign = 'right';
+  for (const v of ticks) { const y = base - (base - top) * v / vmax; c.beginPath(); c.moveTo(gap * .7, y); c.lineTo(w - gap * .5, y); c.stroke(); c.fillText(unit(v), gap * .62, y + 8); }
+  const tops = [];
+  bars.forEach(([a, b, v, lab], i) => {
+    const g = eo(seg(t, T0 + .25 + i * BEAT * 2, T0 + .55 + i * BEAT * 2)), x = gap + i * (bw + gap), y = base - (base - top) * v / vmax * g;
+    c.fillStyle = i === n - 1 ? '#1d1b18' : '#5d574e'; c.fillRect(x, y, bw, base - y);
+    for (let k = 0; k < (base - y) / 9; k++) { c.fillStyle = 'rgba(220,214,200,.10)'; c.fillRect(x, y + k * 9, bw, 2); }
+    c.fillStyle = ink; c.textAlign = 'center';
+    if (g > .95) { c.font = '700 46px Oswald'; c.letterSpacing = '1px'; c.fillText(lab, x + bw / 2, y - 22); }
+    c.font = '600 26px Oswald'; c.letterSpacing = '3px'; c.fillText(a, x + bw / 2, base + 44); c.font = '500 22px Oswald'; c.fillText(b, x + bw / 2, base + 78);
+    tops.push([x0 + x + bw / 2, y0 + base - (base - top) * v / vmax - 40]);
+  });
+  c.restore();
+  const [rx, ry] = tops[ringI]; pencil(c, ring(rx, ry + 10, 150, 64, .05), seg(t, ringT, ringT + .3), 8);
+  c.restore();
+}
+const pct = v => String(v).replace('.', ',') + ' %';
+function sceneChart(c, t) {
+  barCard(c, t, SEC.chart.t0, 'TINGKAT PENGANGGURAN', 'PERSEN DARI ANGKATAN KERJA · 2026',
+    [['NASIONAL', 'MEI 2026', 4.65, '4,65 %'], ['USIA 15–24', 'FEB 2026', 16.36, '16,36 %'], ['USIA 15–24', 'MEI 2026', 17.37, '17,37 %']], 20, [0, 5, 10, 15, 20], pct, HIT.ring_1737, 2, 'Sumber: BPS, Sakernas Februari & Mei 2026');
+}
+function sceneKemnaker(c, t) {
+  barCard(c, t, SEC.kemnaker.t0, 'TENAGA KERJA TER-PHK', 'KEMNAKER · PESERTA JAMINAN KEHILANGAN PEKERJAAN',
+    [['2024', 'JAN–DES', 77965, '77.965'], ['2025', 'JAN–DES', 88519, '88.519']], 100000, [0, 25000, 50000, 75000, 100000], v => (v / 1000) + ' rb', HIT.ring_1354, 1, 'Sumber: Kemnaker, Satu Data Ketenagakerjaan (Januari 2026)');
+  if (t > HIT.ring_1354 - .05) stamp(c, '+13,54 %', GW / 2 + 40, 260, -.05, seg(t, HIT.ring_1354 - .05, HIT.ring_1354 + .12), 50);
+}
+
+// ---------- one in six: six figures dealt on the beat ----------
+function figure(c, x, y, s, filled) {
+  c.beginPath(); c.arc(x, y - 30 * s, 10 * s, 0, TAU); c.moveTo(x - 14 * s, y + 18 * s); c.lineTo(x - 14 * s, y - 6 * s); c.quadraticCurveTo(x - 14 * s, y - 16 * s, x - 4 * s, y - 16 * s); c.lineTo(x + 4 * s, y - 16 * s); c.quadraticCurveTo(x + 14 * s, y - 16 * s, x + 14 * s, y - 6 * s); c.lineTo(x + 14 * s, y + 18 * s); c.closePath();
+  if (filled) c.fill(); else { c.save(); c.setLineDash([5 * s / 3, 5 * s / 3]); c.stroke(); c.restore(); }
+}
+function sceneSix(c, t) {
+  c.fillStyle = '#1d1b18'; c.fillRect(0, 0, GW, GH);
+  const T0 = SEC.six.t0, z = lerp(1, 1.04, ss(seg(t, T0, SEC.six.t1)));
+  c.save(); c.translate(GW / 2, GH / 2); c.scale(z, z); c.translate(-GW / 2, -GH / 2);
+  c.fillStyle = '#efe9dc'; c.font = '600 34px Oswald'; c.letterSpacing = '8px'; c.textAlign = 'center'; c.fillText('PENCARI KERJA USIA 15–24 · MEI 2026', GW / 2, 230);
+  for (let i = 0; i < 6; i++) {
+    const T = T0 + .15 + i * BEAT, u = eo(seg(t, T, T + .12)); if (u <= 0) continue;
+    const x = GW / 2 + (i - 2.5) * 200, y = 560 - (1 - u) * 50;
+    c.save(); c.globalAlpha = u; c.fillStyle = '#d9d3c6'; c.strokeStyle = '#d9d3c6'; c.lineWidth = 6; figure(c, x, y, 5.2, i < 5); c.restore();
+  }
+  c.restore();
+  const hx = GW / 2 + 2.5 * 200; pencil(c, ring(hx, 520, 120, 200, .1), seg(t, HIT.six_ring, HIT.six_ring + .3), 8);
+  if (t > HIT.six_ring + .3) stampLight(c, '17,37 % MENGANGGUR', GW / 2, 860, -.03, seg(t, HIT.six_ring + .3, HIT.six_ring + .45), 44);
+}
+
+// ---------- the job fair ----------
+const sceneJfC = (c, t) => footage(c, 'jfC', t, SEC.jfC.t0, [1.0, 1.04], .5, .5);
+const sceneJfA = (c, t) => footage(c, 'jfA', t, SEC.jfA.t0, [1.04, 1.0], .5, .5);
+const sceneJfB = (c, t) => footage(c, 'jfB', t, SEC.jfB.t0, [1.0, 1.05], .5, .55);
+
+// ---------- informal work: prints dealt on the desk ----------
+function sceneInformal(c, t) {
+  bgDesk(c); const T0 = SEC.informal.t0, D = HIT.inf_deal;
+  const z = lerp(1, 1.04, ss(seg(t, T0, SEC.informal.t1))); c.save(); c.translate(GW / 2, GH / 2); c.scale(z, z); c.translate(-GW / 2, -GH / 2);
+  slamIn(c, t, T0 + .12, c => print(c, A.pekerja_duduk_detik, GW / 2, GH / 2 - 40, 1000, -.02));
+  const deal = [['ojol_cnbc', 400, 330, 620, -.07], ['pkl_rujak', 1080, 360, 620, .05], ['ojol_liputan6', 760, 650, 640, -.02]];
+  deal.forEach(([k, x, y, w, r], i) => slamIn(c, t, D + i * BEAT * 2, c => print(c, A[k], x, y, w, r, 16), .12));
+  c.restore();
+  stamp(c, '59,30 % INFORMAL', GW / 2, 900, -.04, seg(t, HIT.stamp_inf, HIT.stamp_inf + .14), 56);
+}
+function sceneFactory(c, t) {
+  bgDesk(c); const T0 = SEC.factory.t0, z = lerp(1, 1.06, seg(t, T0, SEC.factory.t1));
+  c.save(); c.translate(GW / 2, GH / 2); c.scale(z, z); c.translate(-GW / 2, -GH / 2); slamIn(c, t, T0 + .12, c => print(c, A.pabrik_garmen_antara, GW / 2, GH / 2 - 30, 1060, .015)); c.restore();
+}
+
+// ---------- the map: coastlines only, no borders ----------
+const mapBoxes = [];
+function arcPts(a, b, bend, n = 60) { const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, dx = b[0] - a[0], dy = b[1] - a[1], cx = mx - dy * bend, cy = my + dx * bend; return [...Array(n).keys()].map(i => { const u = i / (n - 1); return [(1 - u) ** 2 * a[0] + 2 * (1 - u) * u * cx + u * u * b[0], (1 - u) ** 2 * a[1] + 2 * (1 - u) * u * cy + u * u * b[1]]; }); }
+function star(c, x, y, u, z, t, t0) {
+  for (let r = 0; r < 2; r++) { const p = t - t0 - r * .35; if (p > 0 && p < 1.2) { c.strokeStyle = `rgba(20,18,15,${.7 * (1 - p / 1.2)})`; c.lineWidth = 3 / z; c.beginPath(); c.arc(x, y, (14 + p * 60) / z, 0, TAU); c.stroke(); } }
+  c.save(); c.translate(x, y); c.scale(u / z, u / z); c.rotate(t * .4); c.fillStyle = '#0f0e0c'; c.beginPath();
+  for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5 - Math.PI / 2, r = i % 2 ? 10 : 25; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+  c.closePath(); c.fill(); c.strokeStyle = '#efe9dc'; c.lineWidth = 2.5; c.stroke(); c.restore();
+}
+function mapBase(c, z, fx, fy) {
+  c.fillStyle = '#1d1b18'; c.fillRect(0, 0, GW, GH);
+  c.strokeStyle = 'rgba(200,192,176,.10)'; c.lineWidth = 1.5; for (let y = 4; y < GH; y += 9) { c.beginPath(); c.moveTo(0, y); c.lineTo(GW, y); c.stroke(); }
+  c.save(); c.translate(GW / 2, GH / 2); c.scale(z, z); c.translate(-fx, -fy);
+  c.save(); c.translate(6, 9); c.fillStyle = 'rgba(0,0,0,.55)'; for (const s of MAP.polys) { c.beginPath(); s.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); c.fill(); } c.restore();
+  const g = c.createLinearGradient(0, 300, 0, 800); g.addColorStop(0, '#d9d3c6'); g.addColorStop(1, '#a8a196');
+  c.fillStyle = g; c.strokeStyle = 'rgba(40,36,30,.55)'; c.lineWidth = 1.4 / z;
+  for (const s of MAP.polys) { c.beginPath(); s.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); c.fill(); c.stroke(); }
+}
+const toScreen = (p, z, fx, fy) => [GW / 2 + (p[0] - fx) * z, GH / 2 + (p[1] - fy) * z];
+function mapLabel(c, p, z, fx, fy, l1, l2, dx, dy, al, a, id) {
+  if (a <= 0) return; const [sx, sy] = toScreen(p, z, fx, fy); mapBoxes.push({ id, l1, l2, x: sx + dx, y: sy + dy, al, a });
+}
+function sceneMap1(c, t) {
+  mapBoxes.length = 0; const C = MAP.cities, T0 = SEC.map1.t0, S = HIT.star_sk;
+  const p = ei(seg(t, S + .4, SEC.map1.t1)), z = lerp(1, 1.9, p), fx = lerp(GW / 2, C.sukoharjo[0], ss(p)), fy = lerp(GH / 2, C.sukoharjo[1], ss(p));
+  mapBase(c, z, fx, fy);
+  const pts = arcPts(C.jakarta, C.sukoharjo, -.18), u = eio(seg(t, T0 + .3, S)), n = Math.floor(pts.length * u);
+  c.save(); c.setLineDash([10 / z, 9 / z]); c.lineWidth = 5 / z; c.strokeStyle = '#141210'; c.beginPath(); for (let i = 0; i < n; i++) i ? c.lineTo(...pts[i]) : c.moveTo(...pts[i]); c.stroke(); c.restore();
+  star(c, ...C.jakarta, eo(seg(t, T0 + .1, T0 + .3)), z, t, T0 + .1);
+  if (t > S - .05) star(c, ...C.sukoharjo, eo(seg(t, S - .05, S + .2)), z, t, S);
+  c.restore();
+  mapLabel(c, C.jakarta, z, fx, fy, 'JAKARTA', null, -30, -110, 'right', clamp((t - T0 - .2) / .15) * (1 - seg(t, SEC.map1.t1 - .3, SEC.map1.t1 - .15)), 'jkt');
+  mapLabel(c, C.sukoharjo, z, fx, fy, 'SUKOHARJO', 'Jawa Tengah', 40, 30, 'left', clamp((t - S) / .15), 'sk');
+}
+function sceneMap2(c, t) {
+  mapBoxes.length = 0; const C = MAP.cities, T0 = SEC.map2.t0, J = HIT.jabar, z = 1.0;
+  mapBase(c, z, GW / 2, GH / 2);
+  // reports land as dots, one cluster per beat
+  const CLU = [[C.cikarang, 26], [C.bandung, 22], [C.jakarta, 12], [C.surabaya, 14], [C.sukoharjo, 10]];
+  c.fillStyle = 'rgba(20,18,15,.85)';
+  CLU.forEach(([[x, y], n], j) => { for (let i = 0; i < n; i++) { const T = T0 + .3 + (j * 3 + (i % 3)) * BEAT; if (t < T) continue; const a = hash(j * 31 + i) * TAU, r = 6 + hash(j * 17 + i * 3) * 46; c.beginPath(); c.arc(x + Math.cos(a) * r * 1.4, y + Math.sin(a) * r * .55, 4.5 * eo(seg(t, T, T + .1)), 0, TAU); c.fill(); } });
+  if (t > J - .05) star(c, ...C.bandung, eo(seg(t, J - .05, J + .2)), z, t, J);
+  c.restore();
+  // odometer: Kemnaker, January to September 2026
+  const v = Math.round(63789 * eio(seg(t, T0 + .3, J - .3))), str = v.toLocaleString('de-DE');
+  const bx = GW - 470, by = 70; c.fillStyle = 'rgba(12,11,10,.9)'; c.fillRect(bx, by, 400, 150); c.strokeStyle = '#d8d0bf'; c.lineWidth = 2; c.strokeRect(bx + 7, by + 7, 386, 136);
+  c.font = '84px Limelight'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#f1ece1'; c.letterSpacing = '4px'; c.fillText(str, bx + 200, by + 66);
+  c.font = '500 22px Oswald'; c.letterSpacing = '4px'; c.fillStyle = '#cfc7b8'; c.fillText('PHK · JAN–SEP 2026', bx + 200, by + 122); c.textBaseline = 'alphabetic';
+  mapLabel(c, C.bandung, z, GW / 2, GH / 2, 'JAWA BARAT', '13.044, tertinggi', -60, -150, 'right', clamp((t - J) / .15), 'jb');
+}
+
+// ---------- Sritex ----------
+function sceneSritex(c, t) {
+  bgDesk(c); const T0 = SEC.sritex.t0, z = lerp(1, 1.04, ss(seg(t, T0, SEC.sritex.t1)));
+  c.save(); c.translate(GW / 2, GH / 2); c.scale(z, z); c.translate(-GW / 2, -GH / 2);
+  slamIn(c, t, T0 + .12, c => print(c, A.sritex_buruh_gedung, GW / 2 - 90, GH / 2 - 90, 900, -.025));
+  // the second photograph slides in from the right: kept wide, never pushed in on faces
+  const u = eio(seg(t, HIT.print2 - .25, HIT.print2)); if (u > 0) print(c, A.sritex_buruh_menangis, lerp(GW + 500, GW / 2 + 260, u), GH / 2 + 30, 760, .035, 18);
+  c.restore();
+  if (t > HIT.tele_slam - .16) slamIn(c, t, HIT.tele_slam, c => {
+    const tw = 1180, th = 92; c.save(); c.translate(GW / 2, GH / 2 + 340); c.rotate(.012);
+    c.shadowColor = 'rgba(0,0,0,.55)'; c.shadowBlur = 24; c.shadowOffsetY = 10; c.fillStyle = '#d6cfbf'; c.fillRect(-tw / 2, -th / 2, tw, th); c.shadowColor = 'transparent';
+    c.fillStyle = '#1d1b18'; c.font = '600 32px Oswald'; c.letterSpacing = '5px'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('SUKOHARJO 1 MARET 2025 STOP SRITEX TUTUP STOP 10.665 DI-PHK', 0, 2); c.restore(); c.textBaseline = 'alphabetic';
+  }, .14);
+}
+function scenePailit(c, t) {
+  bgDesk(c); const T0 = SEC.pailit.t0, j = jolt(t, HIT.stop2, 12);
+  const z = lerp(1, 1.05, ss(seg(t, T0, HIT.stop2))); c.save(); c.translate(GW / 2, GH / 2 + j); c.scale(z, z); c.translate(-GW / 2, -GH / 2);
+  let r = null; slamIn(c, t, T0 + .12, c => { r = print(c, A.demo_buruh_pailit, GW / 2, GH / 2 - 40, 1120, -.012); });
+  c.restore();
+  if (r && t > HIT.stop2) { const sx = GW / 2 + (r.cx - GW / 2) * z + (-.5 + .25) * r.w * z, sy = GH / 2 + j + (r.cy - GH / 2) * z + (-.5 + .52) * r.h * z; pencil(c, ring(sx, sy, 90, 110, .2), seg(t, HIT.stop2 + .1, HIT.stop2 + .4), 8); }
+}
+
+// ---------- title card ----------
+function sceneCard(c, t) {
+  const t0 = SEC.card.t0; c.fillStyle = '#0f0e0d'; c.fillRect(0, 0, GW, GH);
+  const z = 1 + .07 * ss(seg(t, t0, SEC.card.t1)); c.save(); c.translate(GW / 2, GH / 2); c.scale(z, z); c.translate(-GW / 2, -GH / 2);
+  const u = eo(seg(t, t0 + .05, t0 + .4)), bx = 150, by = 150, bw = GW - 300, bh = GH - 300, per = 2 * (bw + bh);
+  c.strokeStyle = '#d9d2c3'; c.lineWidth = 4; c.setLineDash([per * u, per]); c.strokeRect(bx, by, bw, bh); c.lineWidth = 1.5; c.strokeRect(bx + 16, by + 16, bw - 32, bh - 32); c.setLineDash([]);
+  for (const [cx, cy, a0] of [[bx, by, 0], [bx + bw, by, Math.PI / 2], [bx + bw, by + bh, Math.PI], [bx, by + bh, -Math.PI / 2]])
+    for (let k = 0; k < 5; k++) { c.strokeStyle = `rgba(217,210,195,${.9 * u})`; c.lineWidth = 2; c.beginPath(); c.arc(cx, cy, 30 + k * 16, a0, a0 + Math.PI / 2); c.stroke(); }
+  const v = seg(t, t0 + .1, t0 + .45);
+  if (v > 0) {
+    c.save(); c.globalAlpha = clamp(v * 2); c.translate(GW / 2, GH / 2 - 40); const s = lerp(1.6, 1, back(v, 1.2)); c.scale(s, s); silverText(c, 'BUKU KAS NEGARA', 0, 0, 104); c.restore();
+    c.save(); c.globalAlpha = clamp(v * 2); c.font = '600 46px Oswald'; c.letterSpacing = '22px'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#ece7dc'; c.fillText('APBN 2026', GW / 2 + 11, GH / 2 + 100); c.restore();
+  }
+  c.fillStyle = `rgba(217,210,195,${u})`; c.fillRect(GW / 2 - 240 * u, GH / 2 + 30, 480 * u, 3);
+  for (const T of [t0 + BAR, t0 + 2 * BAR]) { const k = seg(t, T, T + .55); if (k <= 0 || k >= 1) continue; const x = lerp(-300, GW + 300, eio(k)), g = c.createLinearGradient(x - 160, 0, x + 160, 0); g.addColorStop(0, 'rgba(255,250,235,0)'); g.addColorStop(.5, 'rgba(255,250,235,.22)'); g.addColorStop(1, 'rgba(255,250,235,0)'); c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.transform(1, 0, -.35, 1, 0, 0); c.fillRect(x + 40, 0, 320, GH); c.restore(); }
+  c.restore();
+}
+
+// ---------- the ledger: one page of the state's cash book ----------
+const LEDGER = (() => {
+  const w = 1300, h = 980, c = mk(w, h), g = c.getContext('2d');
+  g.fillStyle = '#dcd6c8'; g.fillRect(0, 0, w, h); paperNoise(g, w, h, 91, .05);
+  g.strokeStyle = 'rgba(70,90,110,.28)'; g.lineWidth = 1.5; for (let y = 260; y < h - 40; y += 64) { g.beginPath(); g.moveTo(50, y); g.lineTo(w - 50, y); g.stroke(); }
+  g.strokeStyle = 'rgba(120,40,30,.35)'; g.beginPath(); g.moveTo(w - 330, 200); g.lineTo(w - 330, h - 40); g.stroke();
+  g.fillStyle = '#1d1b18'; g.textAlign = 'center'; g.font = '700 58px Oswald'; g.letterSpacing = '6px'; g.fillText('BELANJA NEGARA 2026', w / 2, 110);
+  g.font = '500 26px Oswald'; g.letterSpacing = '5px'; g.fillText('PROYEKSI · TRILIUN RUPIAH', w / 2, 158); g.fillRect(60, 190, w - 120, 4);
+  return c;
+})();
+const LROWS = [['Total belanja (proyeksi Menkeu)', '3.942,4', 'row_total', 310], ['Makan Bergizi Gratis', '335', 'mbg_in', 438], ['Bunga utang', '599,44', 'ul_bunga', 566]];
+function sceneLedger(c, t) {
+  bgDesk(c); const T0 = SEC.ledger.t0, im = LEDGER, s = GH * .9 / im.height;
+  const p = ss(seg(t, SEC.ledger2.t0, SEC.ledger2.t0 + 1.2)), z = lerp(1, 1.18, p), fy = lerp(.5, .45, p);
+  c.save(); c.translate(GW / 2, GH / 2 + jolt(t, T0 + .12)); c.scale(s * z, s * z); c.translate(-im.width / 2, -fy * im.height);
+  const u = eo(seg(t, T0, T0 + .12)); c.globalAlpha = clamp(u * 3);
+  c.shadowColor = 'rgba(0,0,0,.5)'; c.shadowBlur = 30; c.drawImage(im, 0, 0); c.shadowColor = 'transparent';
+  // entries written in as the announcer reads them (ink on the ruled page)
+  for (const [a, b, k, y] of LROWS) {
+    const T = HIT[k] - .1; if (t < T) continue; const a2 = eo(seg(t, T, T + .2));
+    c.globalAlpha = a2; c.fillStyle = '#1d1b18'; c.font = '500 40px "Noto Sans"'; c.letterSpacing = '0px'; c.textAlign = 'left'; c.fillText(a, 70, y);
+    c.font = '700 56px Oswald'; c.textAlign = 'right'; c.letterSpacing = '1px'; c.fillText(b, im.width - 70, y + 2); c.globalAlpha = 1;
+  }
+  pencilDark(c, lineP(im.width - 310, 330, im.width - 60, 328, 30), seg(t, HIT.ul_total + .3, HIT.ul_total + .6), 4);
+  pencilDark(c, lineP(im.width - 310, 586, im.width - 60, 584, 30), seg(t, HIT.ul_bunga, HIT.ul_bunga + .3), 4);
+  c.restore();
+  if (t > HIT.ring_lima) {   // the note in grease pencil: about a fifth of state revenue
+    const cx = GW / 2 + 300, cy = GH / 2 + 250; pencilDark(c, ring(cx, cy, 270, 70, -.04), seg(t, HIT.ring_lima, HIT.ring_lima + .3), 4);
+    c.save(); c.globalAlpha = eo(seg(t, HIT.ring_lima + .2, HIT.ring_lima + .4)); c.fillStyle = 'rgba(20,18,16,.9)'; c.font = '600 46px Oswald'; c.letterSpacing = '4px'; c.textAlign = 'center'; c.fillText('≈ 19 % PENDAPATAN', cx, cy + 16); c.restore();
+  }
+}
+const sceneMbg = (c, t) => footage(c, 'mbg', t, SEC.mbg.t0, [1.0, 1.05], .5, .5);
+
+// ---------- the duel: two ledgers ----------
+function ledgerPanel(c, x, w, rows, total, seed) {
+  c.save(); c.translate(x, 0); c.fillStyle = '#dcd6c8'; c.fillRect(0, 0, w, GH); paperNoise(c, w, GH, seed, .05);
+  c.strokeStyle = 'rgba(70,90,110,.28)'; c.lineWidth = 1.5; for (let y = 250; y < GH - 60; y += 54) { c.beginPath(); c.moveTo(40, y); c.lineTo(w - 40, y); c.stroke(); }
+  c.strokeStyle = 'rgba(120,40,30,.35)'; c.beginPath(); c.moveTo(w - 230, 200); c.lineTo(w - 230, GH - 60); c.stroke();
+  c.fillStyle = '#1d1b18'; rows.forEach(([a, b], i) => { const y = 340 + i * 108; c.font = '500 34px "Noto Sans"'; c.letterSpacing = '0px'; c.textAlign = 'left'; c.fillText(a, 60, y); c.font = '700 46px Oswald'; c.textAlign = 'right'; c.fillText(b, w - 56, y); });
+  c.fillRect(60, 690, w - 116, 4); c.fillRect(60, 700, w - 116, 2);
+  c.font = '600 32px Oswald'; c.letterSpacing = '3px'; c.textAlign = 'left'; c.fillText('TOTAL (PROYEKSI)', 60, 780); c.font = '700 64px Oswald'; c.textAlign = 'right'; c.letterSpacing = '1px'; c.fillText(total, w - 56, 784);
+  c.font = '500 24px Oswald'; c.letterSpacing = '3px'; c.fillText('TRILIUN RUPIAH', w - 56, 830); c.restore();
+}
+function sceneSplit(c, t) {
+  const T0 = SEC.split.t0, half = (GW - 8) / 2, u = eo(seg(t, T0, T0 + .32)), jo = jolt(t, HIT.stop3, 10);
+  c.fillStyle = '#0c0b0a'; c.fillRect(0, 0, GW, GH); c.save(); c.translate(0, jo);
+  AX.save(); AX.setTransform(1, 0, 0, 1, 0, 0); ledgerPanel(AX, 0, half, [['Makan Bergizi Gratis', '335'], ['Bunga utang', '599,44']], '3.942,4', 3); AX.restore();
+  c.drawImage(AUX, 0, 0, half, GH, lerp(-half, 0, u), 0, half, GH);
+  AX.save(); AX.setTransform(1, 0, 0, 1, 0, 0); ledgerPanel(AX, 0, half, [['Proyeksi Menkeu', 'OKT 2026']], '3.208,1', 7); AX.restore();
+  c.drawImage(AUX, 0, 0, half, GH, lerp(GW, half + 8, u), 0, half, GH);
+  c.fillStyle = '#ece6da'; if (u > 0) c.fillRect(half, 0, 8 * u, GH);
+  stamp(c, 'DEFISIT 2,85 % PDB', GW / 2, 590, -.06, seg(t, HIT.stamp_def, HIT.stamp_def + .14), 54, 660);
+  if (t > HIT.batas) {
+    pencil(c, lineP(GW / 2 - 300, 680, GW / 2 + 300, 672, 30), seg(t, HIT.batas, HIT.batas + .25), 7);
+    c.save(); c.globalAlpha = eo(seg(t, HIT.batas + .1, HIT.batas + .3)); c.fillStyle = 'rgba(250,248,240,.96)'; c.strokeStyle = 'rgba(20,18,15,.8)'; c.lineWidth = 6; c.font = '700 50px Oswald'; c.letterSpacing = '6px'; c.textAlign = 'center';
+    c.strokeText('BATAS UNDANG-UNDANG: 3 %', GW / 2, 900); c.fillText('BATAS UNDANG-UNDANG: 3 %', GW / 2, 900); c.restore();
+  }
+  c.restore();
+}
+
+// ---------- Senayan, the commute, the middle class ----------
+function sceneDpr(c, t) {
+  const tt = Math.min(t, HIT.stop4), j = jolt(t, HIT.stop4, 12);
+  c.save(); c.translate(0, j); footage(c, 'dpr', tt, SEC.dpr.t0, [1.0, 1.06], .5, .5); c.restore();
+}
+const sceneKrl = (c, t) => footage(c, 'krl', t, SEC.krl.t0, [1.0, 1.05], .5, .5);
+function sceneClass(c, t) {
+  c.fillStyle = '#1d1b18'; c.fillRect(0, 0, GW, GH);
+  const T0 = SEC.class.t0, R2 = HIT.row2, z = lerp(1, 1.05, ss(seg(t, T0, SEC.class.t1)));
+  c.save(); c.translate(GW / 2, GH / 2); c.scale(z, z); c.translate(-GW / 2, -GH / 2);
+  const rowsY = [300, 690], vals = [57.33, 46.7], labs = ['2019 · 57,33 JUTA (BPS)', '2025 · 46,7 JUTA (ESTIMASI MANDIRI INSTITUTE)'], starts = [T0 + .5, R2];
+  let gap = null;
+  rowsY.forEach((Y, r) => {
+    if (t < starts[r]) return;
+    c.fillStyle = '#efe9dc'; c.font = '600 32px Oswald'; c.letterSpacing = '5px'; c.textAlign = 'left'; c.globalAlpha = eo(seg(t, starts[r], starts[r] + .2)); c.fillText(labs[r], 90, Y - 170); c.globalAlpha = 1;
+    for (let i = 0; i < 57; i++) {
+      const full = i < Math.floor(vals[r]), T = starts[r] + .2 + Math.min(i, Math.floor(vals[r])) * .045 + (full ? 0 : .2);
+      if (t < T) continue; const x = 105 + (i % 29) * 45, y = Y - 60 + Math.floor(i / 29) * 96;
+      c.fillStyle = '#d9d3c6'; c.strokeStyle = 'rgba(217,211,198,.7)'; c.lineWidth = 2; figure(c, x, y - (1 - eo(seg(t, T, T + .1))) * 14, 1.15, full);
+      if (r === 1 && i === Math.floor(vals[1])) gap = [x, y];
+    }
+  });
+  c.restore();
+  if (gap && t > HIT.ring_gap) { const gx = GW / 2 + (gap[0] + 225 - GW / 2) * z, gy = GH / 2 + (gap[1] - GH / 2) * z; pencil(c, ring(gx, gy, 300 * z, 92 * z, -.03), seg(t, HIT.ring_gap, HIT.ring_gap + .3), 8); }
+  if (t > HIT.calon - .05) stampLight(c, 'CALON KELAS MENENGAH: 142 JUTA', GW / 2, 930, -.025, seg(t, HIT.calon - .05, HIT.calon + .1), 40);
+}
+
+// ---------- August 2025: the paper, the poster, the stamp ----------
+const POSTER = (() => {
+  const w = 760, h = 1000, c = mk(w, h), g = c.getContext('2d');
+  g.fillStyle = '#e3ddd0'; g.fillRect(0, 0, w, h); paperNoise(g, w, h, 55, .06);
+  g.fillStyle = '#1d1b18'; g.fillRect(40, 40, w - 80, 10); g.fillRect(40, h - 50, w - 80, 10);
+  g.textAlign = 'center'; g.font = '700 300px Oswald'; g.letterSpacing = '0px'; g.fillText('17+8', w / 2, 400);
+  g.font = '700 92px Oswald'; g.letterSpacing = '10px'; g.fillText('TUNTUTAN', w / 2 + 5, 560); g.fillText('RAKYAT', w / 2 + 5, 670);
+  g.fillRect(140, 720, w - 280, 4); g.font = '600 40px Oswald'; g.letterSpacing = '8px'; g.fillText('AGUSTUS 2025', w / 2 + 4, 800);
+  g.font = '500 30px "Noto Sans"'; g.letterSpacing = '0px'; g.fillText('17 jangka pendek · 8 jangka panjang', w / 2, 880);
+  return c;
+})();
+function scenePoster(c, t) {
+  spinPaper(c, t, PAPER2, SEC.poster.t0 - .05, SEC.poster.t0 + 1.0, sFit => ({ s: sFit * lerp(1, 1.05, ss(seg(t, SEC.poster.t0 + 1, SEC.poster.t1))), fx: .5, fy: .42, oy: 0 }));
+  if (t > HIT.poster_slam - .16) slamIn(c, t, HIT.poster_slam, c => { const s = .78; c.save(); c.translate(GW / 2 + 280, GH / 2 + 40); c.rotate(.04); c.shadowColor = 'rgba(0,0,0,.6)'; c.shadowBlur = 40; c.shadowOffsetY = 16; c.drawImage(POSTER, -POSTER.width * s / 2, -POSTER.height * s / 2, POSTER.width * s, POSTER.height * s); c.restore(); });
+  stamp(c, 'TUNJANGAN RUMAH DPR: DIHENTIKAN', GW / 2 - 60, 790, -.05, seg(t, HIT.stamp_stop, HIT.stamp_stop + .14), 40);
+}
+
+// ---------- the button ----------
+function sceneButton(c, t) {
+  if (t < HIT.freeze) {   // the good news again, in silence
+    bgDesk(c); const im = PAPER1, s = (GW - 70) / im.width * lerp(1.04, 1.1, seg(t, SEC.button.t0, HIT.freeze));
+    c.save(); c.translate(GW / 2, GH / 2); c.scale(s, s); c.drawImage(im, -im.width / 2, -.40 * im.height); c.restore(); return;
+  }
+  const im = CL.jfC[Math.min(26, CL.jfC.length - 1)], j = jolt(t, HIT.freeze, 14), s = cover(im) * lerp(1.0, 1.06, ss(seg(t, HIT.freeze, SEC.button.t1)));
+  c.fillStyle = '#000'; c.fillRect(0, 0, GW, GH); c.drawImage(im, GW / 2 - im.width * s / 2, GH / 2 - im.height * s / 2 + j, im.width * s, im.height * s);
+  pencil(c, ring(GW * .42, GH * .58, 420, 230, -.05), seg(t, HIT.freeze + .25, HIT.freeze + .6), 9);
+}
+function sceneEndLogo(c, t) {
+  c.fillStyle = '#121110'; c.fillRect(0, 0, GW, GH); sunburst(c, GW / 2, GH * .46, -t * .1, 1); beams(c, t, 1, -.08);
+  globe(c, GW / 2, GH * .26, 92, t * 1.4); nameplate(c, t, HIT.end_hit2 - .15, GH * .58);
+  const v = seg(t, HIT.end_hit2 + .3, HIT.end_hit2 + .6); if (v > 0) { c.save(); c.globalAlpha = v; c.font = '500 28px Oswald'; c.letterSpacing = '9px'; c.textAlign = 'center'; c.fillStyle = '#c9c2b4'; c.fillText('SEKIAN KABAR PEKAN INI', GW / 2 + 4, GH * .88); c.restore(); }
+}
+const CREDITS = [
+  'Data: BPS (Sakernas Feb & Mei 2026) · Kemnaker, Satu Data (PHK 2025, Jan–Sep 2026)',
+  'Kemenkeu (proyeksi APBN 2026, Okt 2026) · Mandiri Institute (kelas menengah 2025)',
+  'Video: Kompas TV (Bekasi, 27 Mei 2025) · Biro Pers Setpres (MBG, 3 Feb 2025) · arsip YouTube',
+  'Foto: Antara, detikcom, Liputan6, CNBC Indonesia, dan sumber berita lain',
+  'Peta: Natural Earth · Suara: ElevenLabs · Musik orisinal · Koran & poster di film ini rekaan',
+];
+function sceneEndCard(c, t) {
+  const t0 = SEC.endcard.t0; c.fillStyle = '#100f0e'; c.fillRect(0, 0, GW, GH);
+  c.save(); c.globalAlpha = eo(seg(t, t0, t0 + .5)); c.textAlign = 'center';
+  c.strokeStyle = 'rgba(217,210,195,.55)'; c.lineWidth = 2; c.strokeRect(100, 130, GW - 200, GH - 260); c.lineWidth = 1; c.strokeRect(114, 144, GW - 228, GH - 288);
+  silverText(c, 'Anak Muda dan Buku Kas Negara', GW / 2, 300, 66);
+  c.fillStyle = '#b8b0a0'; const lw = 560 * eo(seg(t, t0 + .2, t0 + .6)); c.fillRect(GW / 2 - lw / 2, 380, lw, 2);
+  c.font = '600 34px Oswald'; c.letterSpacing = '8px'; c.fillStyle = '#e4ddd0'; c.fillText('WARTA KILAT NUSANTARA · GAYA NEWSREEL 1920-AN', GW / 2 + 4, 450);
+  c.font = '400 25px "Noto Sans"'; c.letterSpacing = '0px'; c.fillStyle = '#b3ab9c';
+  CREDITS.forEach((s, i) => c.fillText(s, GW / 2, 560 + i * 48));
+  c.font = '500 22px Oswald'; c.letterSpacing = '4px'; c.fillStyle = '#8f887b'; c.fillText('FILM TIDAK RESMI · MATERI MILIK PEMILIKNYA MASING-MASING', GW / 2, 860);
+  c.restore();
+}
+
+const SCN = { logo: sceneLogo, paper: scenePaper, chart: sceneChart, six: sceneSix, jfC: sceneJfC, jfA: sceneJfA, jfB: sceneJfB, informal: sceneInformal, factory: sceneFactory,
+  map1: sceneMap1, sritex: sceneSritex, kemnaker: sceneKemnaker, map2: sceneMap2, pailit: scenePailit, card: sceneCard, ledger: sceneLedger, mbg: sceneMbg, ledger2: sceneLedger,
+  split: sceneSplit, dpr: sceneDpr, krl: sceneKrl, class: sceneClass, poster: scenePoster, button: sceneButton, endlogo: sceneEndLogo, endcard: sceneEndCard };
+const PACKAGING = new Set(['logo', 'six', 'map1', 'map2', 'card', 'class', 'endlogo', 'endcard']);   // drawn in code: steady, no film damage
+
+// transitions: [time, type, before, after, from, to] (each newsreel transition used once)
+const TR = [
+  [SEC.chart.t0, 'flip', .14, .14, 'paper', 'chart'],
+  [SEC.jfC.t0, 'wipe', .16, .16, 'six', 'jfC'],
+  [SEC.map1.t0, 'irisopen', .02, .28, 'factory', 'map1'],
+  [SEC.map2.t0, 'clock', .17, .17, 'kemnaker', 'map2'],
+  [SEC.card.t0, 'blinds', .02, .3, 'pailit', 'card'],
+  [SEC.dpr.t0, 'push', .0, .3, 'split', 'dpr'],
+  [SEC.endcard.t0, 'fade', .3, .3, 'endlogo', 'endcard'],
+];
+function secAt(t) { let id = TL.secs[0].id; for (const s of TL.secs) if (t >= s.t0) id = s.id; return id; }
+function composeScene(t) {
+  const id = secAt(t);
+  for (const c of [P, F1, T2]) { c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; c.fillStyle = '#000'; c.fillRect(0, 0, GW, GH); }
+  for (const [T, type, a, b, from, to] of TR) {
+    if (t >= T - a && t < T + b) {
+      const u = (t - (T - a)) / (a + b);
+      F1.save(); SCN[from](F1, Math.min(t, T - 1e-3)); F1.restore(); T2.save(); SCN[to](T2, Math.max(t, T)); T2.restore();
+      P.drawImage(FROM, 0, 0);
+      if (type === 'wipe') { const e = eio(u) * (GW + 500) - 250; P.save(); P.beginPath(); P.moveTo(-10, -10); P.lineTo(e + 250, -10); P.lineTo(e - 250, GH + 10); P.lineTo(-10, GH + 10); P.closePath(); P.clip(); P.drawImage(TMP, 0, 0); P.restore(); P.strokeStyle = 'rgba(255,250,235,.85)'; P.lineWidth = 6; P.beginPath(); P.moveTo(e + 250, -10); P.lineTo(e - 250, GH + 10); P.stroke(); }
+      else if (type === 'flip') { P.fillStyle = '#000'; P.fillRect(0, 0, GW, GH); const src = u < .5 ? FROM : TMP, k = Math.abs(Math.cos(u * Math.PI)); P.save(); P.translate(GW / 2, GH / 2); P.scale(Math.max(.002, k), 1 - .06 * (1 - k)); P.drawImage(src, -GW / 2, -GH / 2); P.fillStyle = `rgba(0,0,0,${.55 * (1 - k)})`; P.fillRect(-GW / 2, -GH / 2, GW, GH); P.restore(); }
+      else if (type === 'blinds') { const n = 12, sh = GH / n; for (let i = 0; i < n; i++) { const v = clamp(eio(seg(u, i * .03, .64 + i * .03))), k = Math.abs(Math.cos(v * Math.PI)), src = v < .5 ? FROM : TMP; P.fillStyle = '#000'; P.fillRect(0, i * sh, GW, sh); P.save(); P.translate(0, i * sh + sh / 2); P.scale(1, Math.max(.01, k)); P.drawImage(src, 0, i * sh, GW, sh, 0, -sh / 2, GW, sh); P.restore(); } }
+      else if (type === 'clock') { const ang = -Math.PI / 2 + eio(u) * TAU; P.save(); P.beginPath(); P.moveTo(GW / 2, GH / 2); P.arc(GW / 2, GH / 2, 1600, -Math.PI / 2, ang); P.closePath(); P.clip(); P.drawImage(TMP, 0, 0); P.restore(); P.strokeStyle = 'rgba(255,250,235,.8)'; P.lineWidth = 5; P.beginPath(); P.moveTo(GW / 2, GH / 2); P.lineTo(GW / 2 + Math.cos(ang) * 1600, GH / 2 + Math.sin(ang) * 1600); P.stroke(); }
+      else if (type === 'irisopen') { const r = eo(u) * 1000; P.fillStyle = '#000'; P.fillRect(0, 0, GW, GH); P.save(); P.beginPath(); P.arc(GW / 2, GH / 2, r, 0, TAU); P.clip(); P.drawImage(TMP, 0, 0); P.restore(); P.strokeStyle = 'rgba(0,0,0,.9)'; P.lineWidth = 14; P.beginPath(); P.arc(GW / 2, GH / 2, r, 0, TAU); P.stroke(); }
+      else if (type === 'push') { const x = eio(u) * GW; P.fillStyle = '#000'; P.fillRect(0, 0, GW, GH); P.drawImage(FROM, -x, 0); P.drawImage(TMP, GW - x, 0); P.fillStyle = '#ece6da'; P.fillRect(GW - x - 8, 0, 8, GH); }
+      else if (type === 'fade') { P.fillStyle = '#000'; P.fillRect(0, 0, GW, GH); P.globalAlpha = Math.abs(1 - 2 * u); P.drawImage(u < .5 ? FROM : TMP, 0, 0); P.globalAlpha = 1; }
+      return { id: to, footage: !(PACKAGING.has(to) && PACKAGING.has(from)) };
+    }
+  }
+  P.save(); SCN[id](P, t); P.restore();
+  const iris = (r, cy = GH * .4) => { P.save(); P.globalCompositeOperation = 'destination-in'; P.beginPath(); P.arc(GW / 2, cy, Math.max(0, r), 0, TAU); P.fill(); P.globalCompositeOperation = 'destination-over'; P.fillStyle = '#000'; P.fillRect(0, 0, GW, GH); P.restore(); };
+  if (id === 'logo' && t > SEC.logo.t1 - .45) iris(lerp(1000, 0, ei(seg(t, SEC.logo.t1 - .45, SEC.logo.t1 - .02))), GH * .36);
+  if (id === 'button' && t > SEC.button.t1 - .35) iris(lerp(1000, 0, ei(seg(t, SEC.button.t1 - .35, SEC.button.t1 - .02))), GH * .5);
+  if (id === 'endlogo') iris(lerp(0, 1100, eo(seg(t, SEC.endlogo.t0, SEC.endlogo.t0 + .32))), GH * .4);
+  return { id, footage: !PACKAGING.has(id) };
+}
+
+// ---------- film look (picture layer only) ----------
+function filmLook(f, strength) {
+  P.save(); P.globalCompositeOperation = 'multiply'; P.fillStyle = '#efe7d6'; P.fillRect(0, 0, GW, GH);
+  P.globalCompositeOperation = 'screen'; P.fillStyle = '#17140f'; P.fillRect(0, 0, GW, GH); P.globalCompositeOperation = 'source-over';
+  const g = P.createRadialGradient(GW / 2, GH / 2, GH * .42, GW / 2, GH / 2, GH * .95); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${.62 * strength + .2})`); P.fillStyle = g; P.fillRect(0, 0, GW, GH);
+  if (strength > 0) {
+    for (let k = 0; k < 3; k++) { const id = Math.floor((f + k * 5) / 9) * 7 + k; if (hash(id * 1.3) > .55) continue; const x = hash(id * 2.1) * GW + (f % 9) * (hash(id * 3.7) - .5) * 6; P.fillStyle = hash(id) > .5 ? 'rgba(255,250,240,.22)' : 'rgba(0,0,0,.28)'; const y0 = hash(id * 5.1) * GH * .4, y1 = GH - hash(id * 6.3) * GH * .3; P.fillRect(x, y0, 1 + hash(id * 8.2) * 1.6, y1 - y0); }
+    const n = Math.floor(hash(f * .91) * 5); for (let k = 0; k < n; k++) { const s = f * 13 + k * 3.1, x = hash(s) * GW, y = hash(s + 1) * GH, r = 1 + hash(s + 2) * 4; P.fillStyle = hash(s + 3) > .35 ? 'rgba(10,8,6,.55)' : 'rgba(255,252,245,.45)'; P.beginPath(); P.ellipse(x, y, r, r * (.4 + hash(s + 4)), hash(s + 5) * 3, 0, TAU); P.fill(); }
+  }
+  P.restore();
+}
+
+// ---------- type layer ----------
+const boxes = [];
+const SUBF = '600 40px "Noto Sans"';
+const SUBSPAN = (() => { const out = []; for (const c of TL.cues) { const l = out[out.length - 1]; if (l && c.t - l[1] < 1.0) l[1] = Math.max(l[1], c.t1); else out.push([c.t, c.t1]); } return out; })();
+function subBand(t) {
+  let a = 0; for (const [t0, t1] of SUBSPAN) a = Math.max(a, Math.min(seg(t, t0 - .25, t0), 1 - seg(t, t1, t1 + .3)));
+  if (a <= 0) return;
+  X.save(); X.beginPath(); X.roundRect(GX, 0, GW, GH, 26); X.clip();
+  const g = X.createLinearGradient(0, H - 150, 0, H); g.addColorStop(0, 'rgba(10,9,8,0)'); g.addColorStop(.3, `rgba(10,9,8,${.93 * a})`); g.addColorStop(1, `rgba(10,9,8,${.96 * a})`); X.fillStyle = g; X.fillRect(GX, H - 150, GW, 150); X.restore();
+}
+function subtitle(t) {
+  for (const c of TL.cues) {
+    if (t < c.t - .05 || t > c.t1) continue;
+    const a = Math.min(seg(t, c.t - .05, c.t + .06), 1 - seg(t, c.t1 - .06, c.t1));
+    X.save(); X.globalAlpha = a; X.textAlign = 'center'; X.textBaseline = 'alphabetic'; X.lineJoin = 'round'; X.font = SUBF; X.letterSpacing = '1px';
+    X.lineWidth = 8; X.strokeStyle = 'rgba(8,7,6,.92)'; X.strokeText(c.text, W / 2, H - 54); X.fillStyle = '#fbf8f1'; X.fillText(c.text, W / 2, H - 54); X.restore();
+  }
+}
+window.SUBCHECK = () => TL.cues.map(c => { X.font = SUBF; X.letterSpacing = '1px'; const a = X.measureText(c.text).width; return { id: c.id, w: Math.round(a), ok: a < GW - 120 }; });
+function tagCard(x, y, l1, l2, u, o, id) {
+  X.save(); X.globalAlpha = o; X.font = '600 30px Oswald'; X.letterSpacing = '5px'; const w1 = X.measureText(l1).width; X.font = '500 26px "Noto Sans"'; X.letterSpacing = '1px'; const w2 = X.measureText(l2).width;
+  const w = Math.max(w1, w2, 220) + 44; X.beginPath(); X.rect(x - 4, y - 8, w * u + 8, 118); X.clip();
+  X.fillStyle = 'rgba(12,11,10,.8)'; X.fillRect(x, y, w, 104); X.strokeStyle = '#d8d0bf'; X.lineWidth = 2; X.strokeRect(x + 6, y + 6, w - 12, 92);
+  X.font = '600 30px Oswald'; X.letterSpacing = '5px'; X.fillStyle = '#f3eee4'; X.textBaseline = 'alphabetic'; X.fillText(l1, x + 22, y + 46);
+  X.font = '500 26px "Noto Sans"'; X.letterSpacing = '1px'; X.fillStyle = '#d6cfc0'; X.fillText(l2, x + 22, y + 84); X.restore();
+  if (u >= 1 && o >= 1) boxes.push({ id: id + '-1', text: l1, x0: x, y0: y, x1: x + w, y1: y + 52 }, { id: id + '-2', text: l2, x0: x, y0: y + 52, x1: x + w, y1: y + 104 });
+}
+function boxLabel(cx, y, l1, l2, align, a, id) {
+  X.save(); X.globalAlpha = a; X.font = '600 32px Oswald'; X.letterSpacing = '6px'; const w1 = X.measureText(l1).width; X.font = '500 24px "Noto Sans"'; X.letterSpacing = '1px'; const w2 = l2 ? X.measureText(l2).width : 0;
+  const w = Math.max(w1, w2, 180) + 56, h = l2 ? 100 : 66, x = align === 'center' ? cx - w / 2 : align === 'right' ? cx - w : cx;
+  X.fillStyle = 'rgba(12,11,10,.86)'; X.fillRect(x, y, w, h); X.strokeStyle = '#d8d0bf'; X.lineWidth = 2; X.strokeRect(x + 6, y + 6, w - 12, h - 12);
+  X.textAlign = 'center'; X.font = '600 32px Oswald'; X.letterSpacing = '6px'; X.fillStyle = '#f3eee4'; X.fillText(l1, x + w / 2 + 3, y + 46);
+  if (l2) { X.font = '500 24px "Noto Sans"'; X.letterSpacing = '1px'; X.fillStyle = '#d6cfc0'; X.fillText(l2, x + w / 2, y + 82); }
+  X.restore();
+  if (a >= 1) { boxes.push({ id: id + '-1', text: l1, x0: x, y0: y, x1: x + w, y1: y + 52 }); if (l2) boxes.push({ id: id + '-2', text: l2, x0: x, y0: y + 52, x1: x + w, y1: y + h }); }
+}
+function labels(t, id) {
+  for (const g of TL.tags) { if (t < g.t0 || t > g.t1) continue; tagCard(GX + 48, 56, g.l1, g.l2, eo(seg(t, g.t0, g.t0 + .22)), 1 - seg(t, g.t1 - .15, g.t1), 'tag-' + g.sec); }
+  if (id === 'split') { const half = (GW - 8) / 2, t0 = SEC.split.t0 + .35, o = 1 - seg(t, SEC.split.t1 - .15, SEC.split.t1);
+    boxLabel(GX + half / 2, 60, 'BELANJA', null, 'center', eo(seg(t, t0, t0 + .2)) * o, 'sL'); boxLabel(GX + half + 8 + half / 2, 60, 'PENDAPATAN', null, 'center', eo(seg(t, t0 + BEAT, t0 + BEAT + .2)) * o, 'sR'); }
+  if (id === 'map1' || id === 'map2') for (const b of mapBoxes) boxLabel(GX + b.x, b.y, b.l1, b.l2, b.al, b.a, 'map-' + b.id);
+}
+
+window.render = (t) => {
+  boxes.length = 0; const f = frameOf(t);
+  X.setTransform(1, 0, 0, 1, 0, 0); X.fillStyle = '#000'; X.fillRect(0, 0, W, H);
+  const sc = composeScene(t); filmLook(f, sc.footage ? 1 : 0);
+  const flick = sc.footage ? 1 + (hash(f * .37) - .5) * .07 + (vnoise(t * 3) - .5) * .05 : 1 + (hash(f * .37) - .5) * .025;
+  const wx = sc.footage ? (vnoise(f * .21) - .5) * 3.2 : 0, wy = sc.footage ? (vnoise(f * .17 + 9) - .5) * 4.4 : 0;
+  X.save(); X.beginPath(); X.roundRect(GX, 0, GW, GH, 26); X.clip(); X.filter = `brightness(${flick.toFixed(3)})`; X.drawImage(PIC, GX + wx, wy); X.filter = 'none'; X.restore();
+  labels(t, sc.id); if (!NOSUB) { subBand(t); subtitle(t); }
+};
+window.TEXTS = (t) => {
+  window.render(t); const out = [...boxes];
+  if (t > .9 && t < SEC.logo.t1 - .5) out.push({ id: 'logo', text: 'WARTA KILAT NUSANTARA', x0: GX + 100, y0: 680, x1: GX + GW - 100, y1: 900 });
+  if (t > SEC.card.t0 + .5 && t < SEC.card.t1) out.push({ id: 'card', text: 'BUKU KAS NEGARA APBN 2026', x0: GX + 200, y0: 420, x1: GX + GW - 200, y1: 660 });
+  if (t > HIT.end_hit2 + .4 && t < SEC.endcard.t0 - .3) out.push({ id: 'end', text: 'WARTA KILAT NUSANTARA', x0: GX + 120, y0: 560, x1: GX + GW - 120, y1: 800 });
+  if (t > SEC.endcard.t0 + .55) CREDITS.forEach((s, i) => out.push({ id: 'cr' + i, text: s, x0: GX + 100, y0: 530 + i * 48, x1: GX + GW - 100, y1: 570 + i * 48 }));
+  return out.filter(b => b.x0 >= 0);
+};
+window.EV = [...Object.entries(HIT).map(([k, v]) => ({ t: v, type: k })), ...TL.lines.map(L => ({ t: L.t, type: 'voice', id: L.id }))];
+window.render(0);
+window.READY = true;
+</script></body></html>
